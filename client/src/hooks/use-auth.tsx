@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
-      const astraAmount = user.email === 'Siddiq.a@astranova.org' ? '10,000' : '1,000';
+      const astraAmount = user.isAdmin ? '10,000' : '1,000';
       toast({
         title: "Welcome to Astra Nova!",
         description: `Account created successfully! You start with ${astraAmount} Astras.`,

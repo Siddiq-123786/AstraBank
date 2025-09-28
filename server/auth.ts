@@ -67,9 +67,11 @@ export function setupAuth(app: Express) {
       return res.status(400).send("Email already exists");
     }
 
-    // Special handling for admin user
-    const balance = req.body.email === 'Siddiq.a@astranova.org' ? 10000 : 1000;
-    const isAdmin = req.body.email === 'Siddiq.a@astranova.org';
+    // Special handling for admin users (case-insensitive)
+    const adminEmails = ['siddiq.a@astranova.org', 'cosette@astranova.org'];
+    const emailLower = req.body.email.toLowerCase();
+    const isAdmin = adminEmails.includes(emailLower);
+    const balance = isAdmin ? 10000 : 1000;
 
     const user = await storage.createUser({
       ...req.body,
