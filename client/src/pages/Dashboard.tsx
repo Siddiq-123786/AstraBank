@@ -25,8 +25,12 @@ export default function Dashboard() {
     queryKey: ['/api/friends'],
   });
 
+  // Fetch transactions data
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<any[]>({
+    queryKey: ['/api/transactions'],
+  });
+  
   // Empty states for features not yet implemented
-  const transactions: any[] = [];
   const companies: any[] = [];
 
   const handleSendMoney = (friendId: string) => {
@@ -60,7 +64,7 @@ export default function Dashboard() {
           />
         </div>
         <div className="lg:col-span-2">
-          <TransactionHistory transactions={transactions} />
+          <TransactionHistory transactions={transactions.slice(0, 5)} isLoading={transactionsLoading} />
         </div>
       </div>
 

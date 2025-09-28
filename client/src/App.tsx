@@ -13,15 +13,17 @@ import Dashboard from "@/pages/Dashboard";
 import AuthPage from "@/pages/auth-page";
 import AdminPanel from "@/components/AdminPanel";
 import NotFound from "@/pages/not-found";
+import History from "@/pages/History";
+import Friends from "@/pages/Friends";
 
 function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
-      <ProtectedRoute path="/friends" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Friends Page</h1><p>Coming soon...</p></div>} />
+      <ProtectedRoute path="/friends" component={Friends} />
       <ProtectedRoute path="/investments" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Investments Page</h1><p>Coming soon...</p></div>} />
       <ProtectedRoute path="/companies" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Companies Page</h1><p>Coming soon...</p></div>} />
-      <ProtectedRoute path="/history" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Transaction History</h1><p>Coming soon...</p></div>} />
+      <ProtectedRoute path="/history" component={History} />
       <ProtectedRoute path="/admin" component={() => <AdminPanel />} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
