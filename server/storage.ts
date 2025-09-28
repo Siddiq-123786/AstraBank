@@ -1,5 +1,5 @@
 // Referenced from blueprint:javascript_database and javascript_auth_all_persistance integrations
-import { users, friendships, transactions, type User, type InsertUser, type Friendship, type Transaction, type InsertTransaction } from "@shared/schema";
+import { users, friendships, transactions, companies, type User, type InsertUser, type Friendship, type Transaction, type InsertTransaction, type Company, type InsertCompany } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import session, { Store } from "express-session";
@@ -26,6 +26,11 @@ export interface IStorage {
   // Money transfer functionality
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
   getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string })[]>;
+  // Company functionality
+  createCompany(company: { name: string; description: string; category: string; fundingGoal: number; createdById: string }): Promise<Company>;
+  getAllCompanies(): Promise<Company[]>;
+  getCompany(id: string): Promise<Company | undefined>;
+  investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }>;
   sessionStore: Store;
 }
 
@@ -279,6 +284,95 @@ export class DatabaseStorage implements IStorage {
     );
 
     return result;
+  }
+
+  // Company methods
+  async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; createdById: string }): Promise<Company> {
+    const [newCompany] = await db
+      .insert(companies)
+      .values(company)
+      .returning();
+    return newCompany;
+  }
+
+  async getAllCompanies(): Promise<Company[]> {
+    const allCompanies = await db
+      .select()
+      .from(companies)
+      .orderBy(desc(companies.foundedAt));
+    return allCompanies;
+  }
+
+  async getCompany(id: string): Promise<Company | undefined> {
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, id));
+    return company || undefined;
+  }
+
+  async investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      await db.transaction(async (tx) => {
+        // Get company details first
+        const [company] = await tx.select().from(companies).where(eq(companies.id, companyId));
+        if (!company) {
+          throw new Error("Company not found");
+        }
+
+        // Atomic balance deduction with concurrency protection
+        const investorUpdate = await tx
+          .update(users)
+          .set({ balance: sql`${users.balance} - ${amount}` })
+          .where(and(eq(users.id, userId), sql`${users.balance} >= ${amount}`))
+          .returning({ balance: users.balance });
+        
+        if (investorUpdate.length === 0) {
+          throw new Error("Insufficient balance");
+        }
+
+        // Atomic company funding update with overfunding protection  
+        const companyUpdate = await tx
+          .update(companies)
+          .set({ currentFunding: sql`${companies.currentFunding} + ${amount}` })
+          .where(and(
+            eq(companies.id, companyId),
+            sql`${companies.fundingGoal} - ${companies.currentFunding} >= ${amount}`
+          ))
+          .returning({ currentFunding: companies.currentFunding });
+          
+        if (companyUpdate.length === 0) {
+          const remainingFunding = company.fundingGoal - company.currentFunding;
+          throw new Error(`Cannot invest ${amount} Astras. Only ${remainingFunding} Astras remaining to reach funding goal.`);
+        }
+
+        // CRITICAL: Credit the company creator with the investment funds
+        const creatorUpdate = await tx
+          .update(users)
+          .set({ balance: sql`${users.balance} + ${amount}` })
+          .where(eq(users.id, company.createdById))
+          .returning({ balance: users.balance });
+          
+        if (creatorUpdate.length === 0) {
+          throw new Error("Company creator not found");
+        }
+
+        // Record investment transaction
+        await tx
+          .insert(transactions)
+          .values({
+            fromUserId: userId,
+            toUserId: company.createdById,
+            amount,
+            type: 'invest',
+            description: `Investment in ${company.name}`,
+          });
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error.message || "Investment failed" };
+    }
   }
 }
 

@@ -3,7 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { sendMoneySchema, type SendMoneyRequest, type Transaction } from "@shared/schema";
+import { sendMoneySchema, createCompanySchema, investmentSchema, type SendMoneyRequest, type Transaction, type CreateCompanyRequest, type InvestmentRequest } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // sets up /api/register, /api/login, /api/logout, /api/user
@@ -173,6 +173,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(transactions);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch transactions" });
+    }
+  });
+
+  // Company routes - protected by authentication
+  app.post("/api/companies", requireAuth, async (req, res) => {
+    try {
+      const validatedData = createCompanySchema.parse(req.body);
+      const company = await storage.createCompany({
+        ...validatedData,
+        createdById: req.user!.id,
+      });
+      res.json(company);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Invalid company data", details: error.errors });
+      } else {
+        res.status(500).json({ error: "Failed to create company" });
+      }
+    }
+  });
+
+  app.get("/api/companies", requireAuth, async (req, res) => {
+    try {
+      const companies = await storage.getAllCompanies();
+      res.json(companies);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  app.get("/api/companies/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await storage.getCompany(id);
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company" });
+    }
+  });
+
+  app.post("/api/companies/:id/invest", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { amount } = req.body;
+      
+      // Validate amount
+      if (!amount || typeof amount !== 'number' || amount < 100 || amount > 50000) {
+        return res.status(400).json({ error: "Investment amount must be between 100 and 50,000 Astras" });
+      }
+      
+      const result = await storage.investInCompany(id, req.user!.id, amount);
+      
+      if (result.success) {
+        res.json({ success: true, message: "Investment successful!" });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to process investment" });
     }
   });
 

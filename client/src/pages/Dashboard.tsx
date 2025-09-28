@@ -8,17 +8,20 @@ import CompanyCard from "@/components/CompanyCard";
 // SendAstraModal removed - now using SendMoneyModal
 import AddFriendModal from "@/components/AddFriendModal";
 import CreateCompanyModal from "@/components/CreateCompanyModal";
+import InvestmentModal from "@/components/InvestmentModal";
 import SendMoneyModal from "@/components/SendMoneyModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { ApiTransaction } from "@shared/schema";
+import { ApiTransaction, Company } from "@shared/schema";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [sendMoneyModalOpen, setSendMoneyModalOpen] = useState(false);
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
   const [createCompanyModalOpen, setCreateCompanyModalOpen] = useState(false);
+  const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
   const [selectedFriendId, setSelectedFriendId] = useState<string>("");
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
 
   // Fetch friends data
   const { data: friends = [], isLoading: friendsLoading } = useQuery<{ id: string; email: string; balance: number; friendshipStatus: string; requestedByCurrent: boolean }[]>({
@@ -30,8 +33,10 @@ export default function Dashboard() {
     queryKey: ['/api/transactions'],
   });
   
-  // Empty states for features not yet implemented
-  const companies: any[] = [];
+  // Fetch companies data
+  const { data: companies = [], isLoading: companiesLoading } = useQuery<Company[]>({
+    queryKey: ['/api/companies'],
+  });
 
   const handleSendMoney = (friendId: string) => {
     setSelectedFriendId(friendId);
@@ -40,14 +45,14 @@ export default function Dashboard() {
 
   // Friend addition is now handled by AddFriendModal
 
-  const handleCreateCompany = (company: any) => {
-    console.log('Creating company:', company);
-    // TODO: Implement actual create company functionality
-  };
+  // Company creation is now handled by CreateCompanyModal mutation
 
   const handleInvest = (companyId: string) => {
-    console.log('Investing in company:', companyId);
-    // TODO: Implement investment modal
+    const company = companies.find(c => c.id === companyId);
+    if (company) {
+      setSelectedCompany(company);
+      setInvestmentModalOpen(true);
+    }
   };
 
   if (!user) return <div>Loading...</div>;
@@ -142,6 +147,12 @@ export default function Dashboard() {
       <CreateCompanyModal
         open={createCompanyModalOpen}
         onOpenChange={setCreateCompanyModalOpen}
+      />
+
+      <InvestmentModal
+        open={investmentModalOpen}
+        onOpenChange={setInvestmentModalOpen}
+        company={selectedCompany}
       />
     </div>
   );

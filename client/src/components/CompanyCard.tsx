@@ -4,20 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TrendingUp, Users } from "lucide-react";
-
-interface Company {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  logo?: string;
-  initials: string;
-  fundingGoal: number;
-  currentFunding: number;
-  investors: number;
-  roi: number;
-  founded: string;
-}
+import { Company } from "@shared/schema";
 
 interface CompanyCardProps {
   company: Company;
@@ -26,6 +13,8 @@ interface CompanyCardProps {
 
 export default function CompanyCard({ company, onInvest }: CompanyCardProps) {
   const fundingProgress = (company.currentFunding / company.fundingGoal) * 100;
+  const initials = company.name.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase();
+  const founded = new Date(company.foundedAt).getFullYear();
 
   return (
     <Card className="w-full hover-elevate">
@@ -33,8 +22,7 @@ export default function CompanyCard({ company, onInvest }: CompanyCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12">
-              <AvatarImage src={company.logo} />
-              <AvatarFallback>{company.initials}</AvatarFallback>
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <div>
               <CardTitle className="text-lg" data-testid={`text-company-name-${company.id}`}>
@@ -46,11 +34,11 @@ export default function CompanyCard({ company, onInvest }: CompanyCardProps) {
             </div>
           </div>
           <div className="text-right">
-            <div className="flex items-center gap-1 text-green-600">
-              <TrendingUp className="w-4 h-4" />
-              <span className="font-medium text-sm">+{company.roi}%</span>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Users className="w-4 h-4" />
+              <span className="font-medium text-sm">{founded}</span>
             </div>
-            <p className="text-xs text-muted-foreground">ROI</p>
+            <p className="text-xs text-muted-foreground">Founded</p>
           </div>
         </div>
       </CardHeader>
@@ -70,10 +58,10 @@ export default function CompanyCard({ company, onInvest }: CompanyCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              <span>{company.investors} investors</span>
+              <TrendingUp className="w-4 h-4" />
+              <span>{fundingProgress.toFixed(1)}% funded</span>
             </div>
-            <span>Founded {company.founded}</span>
+            <span>Goal: {company.fundingGoal.toLocaleString()} ⭐</span>
           </div>
           <Button
             onClick={() => onInvest(company.id)}

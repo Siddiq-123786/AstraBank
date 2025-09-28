@@ -65,9 +65,33 @@ export const sendMoneySchema = z.object({
   description: z.string().trim().min(1, "Description is required").max(200),
 });
 
+// Company schemas
+export const insertCompanySchema = createInsertSchema(companies).pick({
+  name: true,
+  description: true,
+  category: true,
+  fundingGoal: true,
+  createdById: true,
+});
+
+export const createCompanySchema = z.object({
+  name: z.string().trim().min(1, "Company name is required").max(100),
+  description: z.string().trim().min(10, "Description must be at least 10 characters").max(500),
+  category: z.string().min(1, "Category is required"),
+  fundingGoal: z.number().int().positive().min(1000).max(1000000), // 1K to 1M Astras
+});
+
+export const investmentSchema = z.object({
+  companyId: z.string().uuid(),
+  amount: z.number().int().positive().min(100).max(50000), // Min 100, Max 50K Astras per investment
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type SendMoneyRequest = z.infer<typeof sendMoneySchema>;
+export type CreateCompanyRequest = z.infer<typeof createCompanySchema>;
+export type InvestmentRequest = z.infer<typeof investmentSchema>;
 
 // API Transaction type with counterpart information
 export interface ApiTransaction {

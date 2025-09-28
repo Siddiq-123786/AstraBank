@@ -5,45 +5,60 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { Building, Target } from "lucide-react";
+import { Building } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { CreateCompanyRequest } from "@shared/schema";
 
 interface CreateCompanyModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreate: (company: {
-    name: string;
-    description: string;
-    category: string;
-    fundingGoal: number;
-    teamEmails: string[];
-  }) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function CreateCompanyModal({ isOpen, onClose, onCreate }: CreateCompanyModalProps) {
+export default function CreateCompanyModal({ open, onOpenChange }: CreateCompanyModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [fundingGoal, setFundingGoal] = useState('');
-  const [teamEmails, setTeamEmails] = useState('');
+  const { toast } = useToast();
 
-  const handleCreate = () => {
-    if (name && description && category && fundingGoal) {
-      const emailList = teamEmails.split(',').map(email => email.trim()).filter(email => email);
-      onCreate({
-        name,
-        description,
-        category,
-        fundingGoal: parseInt(fundingGoal),
-        teamEmails: emailList
+  const createCompanyMutation = useMutation({
+    mutationFn: (data: CreateCompanyRequest) => 
+      apiRequest('POST', '/api/companies', data),
+    onSuccess: () => {
+      toast({
+        title: "Company created!",
+        description: "Your company has been successfully created and is now available for investment.",
       });
+      
+      // Invalidate companies data
+      queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
       
       // Reset form
       setName('');
       setDescription('');
       setCategory('');
       setFundingGoal('');
-      setTeamEmails('');
-      onClose();
+      onOpenChange(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to create company",
+        description: error.message || "There was an error creating your company. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreate = () => {
+    if (name && description && category && fundingGoal) {
+      createCompanyMutation.mutate({
+        name,
+        description,
+        category,
+        fundingGoal: parseInt(fundingGoal),
+      });
     }
   };
 
@@ -53,7 +68,7 @@ export default function CreateCompanyModal({ isOpen, onClose, onCreate }: Create
   ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -101,7 +116,7 @@ export default function CreateCompanyModal({ isOpen, onClose, onCreate }: Create
 
           <div className="space-y-2">
             <Label htmlFor="funding-goal" className="flex items-center gap-2">
-              <Target className="w-4 h-4" />
+              <Building className="w-4 h-4" />
               Funding Goal (⭐ Astras)
             </Label>
             <Input
@@ -120,8 +135,6 @@ export default function CreateCompanyModal({ isOpen, onClose, onCreate }: Create
             <Textarea
               id="team-emails"
               placeholder="friend1@astranova.edu, friend2@astranova.edu"
-              value={teamEmails}
-              onChange={(e) => setTeamEmails(e.target.value)}
               rows={2}
               data-testid="input-team-emails"
             />
@@ -131,7 +144,7 @@ export default function CreateCompanyModal({ isOpen, onClose, onCreate }: Create
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Cancel
             </Button>
             <Button 
