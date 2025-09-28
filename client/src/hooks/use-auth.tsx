@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/user"], user);
       const astraAmount = user.isAdmin ? '15,000' : '1,000';
       toast({
-        title: "Welcome to Astra Nova!",
+        title: "Welcome to Astra Trader!",
         description: `Account created successfully! You start with ${astraAmount} Astras.`,
       });
     },

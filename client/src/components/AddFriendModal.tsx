@@ -70,7 +70,7 @@ export default function AddFriendModal({ open, onOpenChange }: AddFriendModalPro
               data-testid="input-friend-email"
             />
             <p className="text-xs text-muted-foreground">
-              Enter your classmate's Astra Nova Gmail address to send them a friend request
+              Enter your classmate's school email address to send them a friend request
             </p>
           </div>
 

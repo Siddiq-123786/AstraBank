@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Star } from "lucide-react";
+import { Star, Wallet, Users, TrendingUp, Send } from "lucide-react";
 import { useState } from "react";
 import { Redirect } from "wouter";
 
@@ -55,7 +55,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle>Create Account</CardTitle>
                   <CardDescription>
-                    Enter your Astra Nova email to start trading with 1,000 Astras
+                    Enter your school email to start trading with 1,000 Astras
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -102,7 +102,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle>Welcome Back</CardTitle>
                   <CardDescription>
-                    Sign in to your Astra Nova account
+                    Sign in to your Astra Trader account
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -150,16 +150,30 @@ export default function AuthPage() {
       {/* Right side - Hero section */}
       <div className="hidden lg:flex flex-col justify-center items-center p-8 bg-primary text-primary-foreground">
         <div className="text-center space-y-6">
-          <div className="text-6xl">⭐</div>
-          <h2 className="text-4xl font-bold">Welcome to Astra Nova</h2>
+          <div className="mb-4">
+            <Star className="w-16 h-16 text-accent fill-current mx-auto" />
+          </div>
+          <h2 className="text-4xl font-bold">Welcome to Astra Trader</h2>
           <p className="text-xl text-primary-foreground/80 max-w-md">
             Connect with classmates, invest in student companies, and manage your digital currency all in one place.
           </p>
           <div className="space-y-2 text-primary-foreground/80">
-            <p>💰 Start with 1,000 Astras</p>
-            <p>👥 Add friends via Gmail</p>
-            <p>📈 Invest in student companies</p>
-            <p>💸 Send money instantly</p>
+            <div className="flex items-center gap-2 justify-center">
+              <Wallet className="w-5 h-5" />
+              <p>Start with 1,000 Astras</p>
+            </div>
+            <div className="flex items-center gap-2 justify-center">
+              <Users className="w-5 h-5" />
+              <p>Add friends via email</p>
+            </div>
+            <div className="flex items-center gap-2 justify-center">
+              <TrendingUp className="w-5 h-5" />
+              <p>Invest in student companies</p>
+            </div>
+            <div className="flex items-center gap-2 justify-center">
+              <Send className="w-5 h-5" />
+              <p>Send money instantly</p>
+            </div>
           </div>
         </div>
       </div>

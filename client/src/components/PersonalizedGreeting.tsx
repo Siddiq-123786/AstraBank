@@ -29,7 +29,7 @@ export default function PersonalizedGreeting() {
       <div>
         <p className="text-sm text-muted-foreground">Welcome back!</p>
         <p className="font-semibold text-foreground" data-testid="text-greeting-name">
-          Hi {displayName}! ⭐
+          Hi {displayName}!
         </p>
       </div>
     </div>

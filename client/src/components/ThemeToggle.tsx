@@ -67,7 +67,7 @@ export default function ThemeToggle() {
                 </AvatarFallback>
               </Avatar>
               <span className="hidden sm:inline font-mono">
-                {user.balance.toLocaleString()} ⭐
+                {user.balance.toLocaleString()} Astras
               </span>
             </Button>
           </DropdownMenuTrigger>
