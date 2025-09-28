@@ -25,7 +25,7 @@ export interface IStorage {
   getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]>;
   // Money transfer functionality
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
-  getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received' })[]>;
+  getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string })[]>;
   sessionStore: Store;
 }
 
@@ -244,24 +244,10 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getTransactions(userId: string, limit: number = 50): Promise<(Transaction & { transactionType: 'sent' | 'received' })[]> {
-    const result = await db
-      .select({
-        id: transactions.id,
-        fromUserId: transactions.fromUserId,
-        toUserId: transactions.toUserId,
-        amount: transactions.amount,
-        type: transactions.type,
-        description: transactions.description,
-        createdAt: transactions.createdAt,
-        // Add computed field for user perspective
-        transactionType: sql<'sent' | 'received'>`
-          CASE 
-            WHEN ${transactions.fromUserId} = ${userId} THEN 'sent'
-            ELSE 'received'
-          END
-        `.as('transactionType')
-      })
+  async getTransactions(userId: string, limit: number = 50): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string })[]> {
+    // Get base transactions
+    const baseTransactions = await db
+      .select()
       .from(transactions)
       .where(
         or(
@@ -271,6 +257,26 @@ export class DatabaseStorage implements IStorage {
       )
       .orderBy(desc(transactions.createdAt))
       .limit(limit);
+
+    // Enhance with counterpart emails
+    const result = await Promise.all(
+      baseTransactions.map(async (transaction) => {
+        const isFromUser = transaction.fromUserId === userId;
+        const counterpartId = isFromUser ? transaction.toUserId : transaction.fromUserId;
+        
+        const counterpartUser = await db
+          .select({ email: users.email })
+          .from(users)
+          .where(eq(users.id, counterpartId!))
+          .limit(1);
+
+        return {
+          ...transaction,
+          transactionType: isFromUser ? 'sent' as const : 'received' as const,
+          counterpartEmail: counterpartUser[0]?.email || 'Unknown'
+        };
+      })
+    );
 
     return result;
   }

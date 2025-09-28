@@ -33,7 +33,7 @@ export default function Friends() {
 
   const acceptFriendMutation = useMutation({
     mutationFn: async (friendId: string) => {
-      const res = await apiRequest('POST', '/api/friends/accept', { friendId });
+      const res = await apiRequest('POST', `/api/friends/${friendId}/accept`, {});
       return res.json();
     },
     onSuccess: () => {
@@ -54,7 +54,7 @@ export default function Friends() {
 
   const rejectFriendMutation = useMutation({
     mutationFn: async (friendId: string) => {
-      const res = await apiRequest('POST', '/api/friends/reject', { friendId });
+      const res = await apiRequest('POST', `/api/friends/${friendId}/reject`, {});
       return res.json();
     },
     onSuccess: () => {

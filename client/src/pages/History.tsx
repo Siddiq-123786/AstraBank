@@ -10,17 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-
-interface DatabaseTransaction {
-  id: string;
-  fromUserId: string;
-  toUserId: string;
-  amount: number;
-  type: 'transfer';
-  description: string;
-  createdAt: string;
-  transactionType: 'sent' | 'received';
-}
+import { ApiTransaction } from "@shared/schema";
 
 export default function History() {
   const { user } = useAuth();
@@ -28,7 +18,7 @@ export default function History() {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // Fetch transactions data
-  const { data: transactions = [], isLoading } = useQuery<DatabaseTransaction[]>({
+  const { data: transactions = [], isLoading } = useQuery<ApiTransaction[]>({
     queryKey: ['/api/transactions'],
   });
 
@@ -40,9 +30,9 @@ export default function History() {
     return email.substring(0, 2).toUpperCase();
   };
 
-  const getOtherUserEmail = (transaction: DatabaseTransaction) => {
-    if (!user) return 'Unknown';
-    return transaction.transactionType === 'sent' ? transaction.toUserId : transaction.fromUserId;
+  const getTransactionType = (transaction: ApiTransaction): 'sent' | 'received' => {
+    if (!user) return 'received';
+    return transaction.fromUserId === user.id ? 'sent' : 'received';
   };
 
   const getAmountColor = (transactionType: 'sent' | 'received') => {
@@ -53,10 +43,9 @@ export default function History() {
     return transactionType === 'received' ? '+' : '-';
   };
 
-  const getTransactionTitle = (transaction: DatabaseTransaction) => {
-    const otherUserEmail = getOtherUserEmail(transaction);
-    const username = otherUserEmail.split('@')[0].replace('.', ' ');
-    return transaction.transactionType === 'sent' 
+  const getTransactionTitle = (transaction: ApiTransaction, transactionType: 'sent' | 'received') => {
+    const username = transaction.counterpartEmail.split('@')[0].replace('.', ' ');
+    return transactionType === 'sent' 
       ? `Sent to ${username}` 
       : `Received from ${username}`;
   };
@@ -65,7 +54,8 @@ export default function History() {
   const filteredTransactions = transactions
     .filter(transaction => {
       if (filter === 'all') return true;
-      return transaction.transactionType === filter;
+      const transactionType = getTransactionType(transaction);
+      return transactionType === filter;
     })
     .sort((a, b) => {
       const dateA = new Date(a.createdAt);
@@ -76,11 +66,11 @@ export default function History() {
     });
 
   const totalSent = transactions
-    .filter(t => t.transactionType === 'sent')
+    .filter(t => getTransactionType(t) === 'sent')
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalReceived = transactions
-    .filter(t => t.transactionType === 'received')
+    .filter(t => getTransactionType(t) === 'received')
     .reduce((sum, t) => sum + t.amount, 0);
 
   if (!user) return <div>Loading...</div>;
@@ -223,8 +213,8 @@ export default function History() {
           ) : (
             <div className="space-y-2">
               {filteredTransactions.map((transaction) => {
-                const otherUserEmail = getOtherUserEmail(transaction);
-                const userInitials = getUserInitials(otherUserEmail);
+                const transactionType = getTransactionType(transaction);
+                const userInitials = getUserInitials(transaction.counterpartEmail);
                 const formattedDate = format(new Date(transaction.createdAt), 'MMM d, yyyy • h:mm a');
                 
                 return (
@@ -236,13 +226,13 @@ export default function History() {
                     <div className="flex items-center gap-4">
                       <div className={cn(
                         "p-3 rounded-full",
-                        transaction.transactionType === 'received' 
+                        transactionType === 'received' 
                           ? "bg-green-100 dark:bg-green-900/20"
                           : "bg-red-100 dark:bg-red-900/20"
                       )}>
                         <Send className={cn(
                           "w-5 h-5",
-                          transaction.transactionType === 'received' 
+                          transactionType === 'received' 
                             ? "text-green-600 rotate-180"
                             : "text-red-600"
                         )} />
@@ -253,21 +243,21 @@ export default function History() {
                       </Avatar>
                       
                       <div>
-                        <h4 className="font-medium">{getTransactionTitle(transaction)}</h4>
+                        <h4 className="font-medium">{getTransactionTitle(transaction, transactionType)}</h4>
                         <p className="text-sm text-muted-foreground">{transaction.description}</p>
                         <p className="text-xs text-muted-foreground mt-1">{formattedDate}</p>
                       </div>
                     </div>
                     
                     <div className="text-right">
-                      <p className={cn("text-xl font-mono font-bold", getAmountColor(transaction.transactionType))}>
-                        {getAmountPrefix(transaction.transactionType)}{transaction.amount.toLocaleString()} ⭐
+                      <p className={cn("text-xl font-mono font-bold", getAmountColor(transactionType))}>
+                        {getAmountPrefix(transactionType)}{transaction.amount.toLocaleString()} ⭐
                       </p>
                       <Badge 
-                        variant={transaction.transactionType === 'received' ? 'default' : 'secondary'}
+                        variant={transactionType === 'received' ? 'default' : 'secondary'}
                         className="text-xs"
                       >
-                        {transaction.transactionType}
+                        {transactionType}
                       </Badge>
                     </div>
                   </div>

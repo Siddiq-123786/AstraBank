@@ -68,6 +68,19 @@ export const sendMoneySchema = z.object({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type SendMoneyRequest = z.infer<typeof sendMoneySchema>;
+
+// API Transaction type with counterpart information
+export interface ApiTransaction {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  amount: number;
+  type: string;
+  description: string;
+  createdAt: string;
+  transactionType: 'sent' | 'received';
+  counterpartEmail: string;
+}
 export type User = typeof users.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Company = typeof companies.$inferSelect;

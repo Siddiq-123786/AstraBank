@@ -6,20 +6,10 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
-
-interface DatabaseTransaction {
-  id: string;
-  fromUserId: string;
-  toUserId: string;
-  amount: number;
-  type: 'transfer';
-  description: string;
-  createdAt: string;
-  transactionType: 'sent' | 'received';
-}
+import { ApiTransaction } from "@shared/schema";
 
 interface TransactionHistoryProps {
-  transactions: DatabaseTransaction[];
+  transactions: ApiTransaction[];
   isLoading?: boolean;
 }
 
@@ -31,7 +21,7 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
   };
 
   const getAmountColor = (transactionType: 'sent' | 'received') => {
-    return transactionType === 'received' ? 'text-green-600' : 'text-foreground';
+    return transactionType === 'received' ? 'text-green-600' : 'text-red-600';
   };
 
   const getAmountPrefix = (transactionType: 'sent' | 'received') => {
@@ -46,9 +36,9 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
     return email.substring(0, 2).toUpperCase();
   };
 
-  const getOtherUserEmail = (transaction: DatabaseTransaction) => {
-    if (!user) return 'Unknown';
-    return transaction.transactionType === 'sent' ? transaction.toUserId : transaction.fromUserId;
+  const getTransactionType = (transaction: ApiTransaction): 'sent' | 'received' => {
+    if (!user) return 'received';
+    return transaction.fromUserId === user.id ? 'sent' : 'received';
   };
 
   if (isLoading) {
@@ -90,8 +80,8 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
           </div>
         ) : (
           transactions.map((transaction) => {
-            const otherUserEmail = getOtherUserEmail(transaction);
-            const userInitials = getUserInitials(otherUserEmail);
+            const transactionType = getTransactionType(transaction);
+            const userInitials = getUserInitials(transaction.counterpartEmail);
             const formattedDate = format(new Date(transaction.createdAt), 'MMM d, h:mm a');
             
             return (
@@ -102,7 +92,7 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-primary/10">
-                    {getIcon(transaction.transactionType)}
+                    {getIcon(transactionType)}
                   </div>
                   <div className="flex items-center gap-3">
                     <Avatar className="w-8 h-8">
@@ -115,11 +105,11 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={cn("font-mono font-medium", getAmountColor(transaction.transactionType))}>
-                    {getAmountPrefix(transaction.transactionType)}{transaction.amount.toLocaleString()} ⭐
+                  <p className={cn("font-mono font-medium", getAmountColor(transactionType))}>
+                    {getAmountPrefix(transactionType)}{transaction.amount.toLocaleString()} ⭐
                   </p>
                   <Badge variant="outline" className="text-xs">
-                    {transaction.transactionType}
+                    {transactionType}
                   </Badge>
                 </div>
               </div>

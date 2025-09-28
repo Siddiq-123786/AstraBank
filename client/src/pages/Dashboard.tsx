@@ -11,7 +11,7 @@ import CreateCompanyModal from "@/components/CreateCompanyModal";
 import SendMoneyModal from "@/components/SendMoneyModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-// Remove User import as we're using a custom type now
+import { ApiTransaction } from "@shared/schema";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -26,7 +26,7 @@ export default function Dashboard() {
   });
 
   // Fetch transactions data
-  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<any[]>({
+  const { data: transactions = [], isLoading: transactionsLoading } = useQuery<ApiTransaction[]>({
     queryKey: ['/api/transactions'],
   });
   
