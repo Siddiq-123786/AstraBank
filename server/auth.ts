@@ -71,7 +71,7 @@ export function setupAuth(app: Express) {
     const adminEmails = ['siddiq.a@astranova.org', 'cosette@astranova.org'];
     const emailLower = req.body.email.toLowerCase();
     const isAdmin = adminEmails.includes(emailLower);
-    const balance = isAdmin ? 10000 : 1000;
+    const balance = isAdmin ? 15000 : 1000;
 
     const user = await storage.createUser({
       ...req.body,
