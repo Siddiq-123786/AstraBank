@@ -1,98 +1,84 @@
-# Astra Nova Currency Platform Design Guidelines
+# Astra Trader Design Guidelines
 
-## Design Approach: Reference-Based (Fintech + Educational)
-**Inspiration**: Venmo's social payments + Robinhood's investment interface + Discord's friend system
-**Rationale**: Young users expect familiar social finance patterns with gamified educational elements
+## Design Approach: Reference-Based (Space-themed Fintech + Educational)
+**Inspiration**: Robinhood's clean investment interface + Duolingo's gamified learning + Discord's friend system, enhanced with cosmic/space exploration aesthetics
+**Rationale**: Creates an engaging, futuristic financial education experience that makes learning approachable through space themes
 
 ## Core Design Elements
 
 ### Color Palette
-**Primary**: 240 85% 20% (Deep space blue - representing "Astra Nova")
-**Secondary**: 240 75% 35% (Lighter space blue)
-**Accent**: 45 90% 60% (Warm gold - representing "Astras" currency)
-**Success**: 142 70% 45% (Investment green)
-**Background Dark**: 240 15% 8%
-**Background Light**: 240 5% 98%
-**Text**: 240 8% 95% (dark mode) / 240 15% 15% (light mode)
+**Primary**: 240 90% 15% (Deep cosmic navy - representing deep space)
+**Secondary**: 260 85% 25% (Nebula purple for depth)
+**Accent**: 45 95% 65% (Stellar gold - representing "Astras" and achievements)
+**Success**: 180 70% 50% (Cyan stellar energy)
+**Warning**: 30 85% 55% (Mars orange for alerts)
+**Background Dark**: 240 20% 6% (Deep space black)
+**Background Light**: 240 8% 97% (Starlight white)
+**Text**: 240 10% 92% (dark mode) / 240 20% 12% (light mode)
 
 ### Typography
-**Primary**: Inter (clean, modern readability)
-**Secondary**: JetBrains Mono (for currency amounts and transaction IDs)
+**Primary**: Inter (modern, space-age readability)
+**Secondary**: JetBrains Mono (for currency amounts, coordinates, transaction IDs)
+**Accent**: Orbitron via Google Fonts (for headers and cosmic branding)
 Font sizes: text-sm, text-base, text-lg, text-xl, text-2xl, text-3xl
 
 ### Layout System
 **Spacing Units**: 2, 4, 6, 8, 12, 16 (Tailwind classes: p-2, m-4, gap-6, etc.)
-**Grid**: 12-column responsive grid with 4-unit gutters
-**Max Width**: max-w-6xl for main content areas
+**Grid**: 12-column responsive grid with 6-unit gutters for spacious, cosmic feel
+**Max Width**: max-w-7xl for immersive space exploration experience
+**Border Radius**: Rounded corners throughout (rounded-lg, rounded-xl) for futuristic aesthetic
 
 ### Component Library
 
 **Navigation**
-- Top navigation bar with Astra Nova logo, balance display, and profile dropdown
-- Mobile: Bottom tab navigation (Wallet, Friends, Invest, Profile)
+- Cosmic top navigation with Astra Trader logo, balance display showing Astra currency (⭐), and profile dropdown
+- Mobile: Bottom navigation with space-themed icons (Cockpit/Dashboard, Crew/Friends, Missions/Invest, Profile)
+- Subtle glow effects on active navigation items
 
 **Core Components**
-- Currency display cards with Astra symbol (⭐) and animated balance updates
-- Friend cards showing profile pictures (Gmail avatars), names, and quick-send buttons
-- Transaction history list with icons, amounts, and timestamps
-- Company investment cards with progress bars and ROI indicators
-- Modal overlays for transactions and company creation
-- Toast notifications for successful actions
+- **Astra Mascot**: Friendly space character integrated throughout interface for guidance and celebrations
+- **Currency Cards**: Floating panel design with subtle star field backgrounds and animated balance updates
+- **Friend/Crew Cards**: Astronaut-themed profile displays with Gmail avatars in space helmet frames
+- **Mission Cards**: Company investments styled as space exploration missions with progress indicators
+- **Transaction Timeline**: Space mission log format with timestamps and stellar achievement badges
+- **Modal Overlays**: Cosmic-themed with subtle aurora backgrounds and rounded edges
+- **Achievement Notifications**: Constellation-style toast notifications for milestones
+
+**Admin Controls**
+- **Mission Control Dashboard**: Administrative overview with cosmic command center aesthetic
+- **Student Fleet Management**: Organized crew/class management with space squadron themes
+- **Mission Creation Tools**: Company/investment setup with space exploration mission planning interface
 
 **Forms**
-- Rounded input fields with subtle borders
-- Primary CTAs use accent gold color
-- Secondary buttons use outline style with blurred backgrounds when over images
+- Rounded input fields with subtle stellar glow on focus
+- Primary buttons use stellar gold with gentle hover animations
+- Secondary buttons use outline style with blurred backgrounds when over cosmic imagery
+- Form sections organized as "mission briefings"
 
 **Data Displays**
-- Portfolio overview with donut charts showing investment distribution
-- Transaction timeline with clear visual hierarchy
-- Company listings in card grid format
-
-### Key Interface Sections
-
-**Dashboard**
-- Balance prominently displayed at top
-- Recent transactions feed
-- Quick actions: Send Astras, Add Friend, Browse Companies
-
-**Wallet**
-- Current balance with send/receive buttons
-- Transaction history with search/filter
-- Pending transactions section
-
-**Friends**
-- Search by Gmail to add friends
-- Friend list with quick-send options
-- Recent interactions
-
-**Investment Hub**
-- Company discovery feed
-- Portfolio overview
-- Investment history and performance
-
-**Company Creation**
-- Multi-step form for groups to register businesses
-- Team member invitation system
-- Company profile setup
+- **Portfolio Observatory**: Investment overview with constellation-style connection lines
+- **Mission Progress**: Company performance with rocket trajectory visualizations
+- **Learning Pathways**: Educational content organized as cosmic exploration routes
 
 ### Visual Hierarchy
-- Use 8-unit spacing between major sections
-- 4-unit spacing for related elements
-- 2-unit spacing for tight groupings
-- Emphasize currency amounts with larger typography and gold coloring
-- Use subtle shadows and borders for card separation
+- 12-unit spacing between major cosmic sections
+- 6-unit spacing for related mission elements
+- 4-unit spacing for tight crew groupings
+- Emphasize Astra currency with stellar gold and larger Orbitron typography
+- Use subtle cosmic shadows and aurora-inspired borders for depth
 
 ### Animations
-- Minimal, purposeful animations only
-- Balance updates with gentle number roll animation
-- Transaction success with subtle celebration effect
-- Page transitions with simple fade
+- **Minimal Cosmic Effects**: Subtle star twinkle on currency updates
+- **Achievement Celebrations**: Gentle constellation formation on mission completion
+- **Page Transitions**: Smooth hyperspace-style fades
+- **Loading States**: Gentle orbital rotation for loading indicators
 
-## Images
-**Profile Pictures**: Gmail avatar integration for all users
-**Company Logos**: User-uploaded company branding (square format, 128x128px)
-**Placeholder States**: Simple illustrated graphics for empty states (no transactions, no friends, etc.)
-**No Hero Image**: Dashboard-focused design without large marketing imagery
+### Images
+**Profile Pictures**: Gmail avatars within space helmet or cosmic frame overlays
+**Mascot Integration**: Friendly Astra character appearing in key interaction moments (onboarding, achievements, guidance)
+**Company Logos**: User-uploaded within cosmic badge frames (rounded-xl, 128x128px)
+**Background Elements**: Subtle star field patterns and nebula gradients (never overwhelming)
+**No Large Hero**: Dashboard-focused design prioritizing functional space exploration interface
+**Empty States**: Illustrated cosmic scenes (empty space stations, waiting launch pads) with Astra mascot providing friendly guidance
 
-This platform prioritizes functionality and trust while maintaining the engaging social elements that make peer-to-peer finance platforms successful among young users.
+This platform transforms financial education into an engaging space exploration adventure, making complex concepts approachable through familiar cosmic metaphors while maintaining the professional functionality students need to learn real financial skills.
