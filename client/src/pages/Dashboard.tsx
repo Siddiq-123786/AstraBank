@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import WalletCard from "@/components/WalletCard";
 import TransactionHistory from "@/components/TransactionHistory";
 import FriendCard from "@/components/FriendCard";
@@ -10,85 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [sendModalOpen, setSendModalOpen] = useState(false);
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
   const [createCompanyModalOpen, setCreateCompanyModalOpen] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<any>(null);
 
-  // TODO: Remove mock data - replace with real data from backend
-  const mockTransactions = [
-    {
-      id: '1',
-      type: 'send' as const,
-      amount: 150,
-      description: 'Sent to Emma Chen',
-      timestamp: '2 hours ago',
-      initials: 'EC'
-    },
-    {
-      id: '2',
-      type: 'receive' as const,
-      amount: 300,
-      description: 'Received from Alex Kumar',
-      timestamp: '1 day ago',
-      initials: 'AK'
-    },
-    {
-      id: '3',
-      type: 'invest' as const,
-      amount: 500,
-      description: 'Invested in Nova Tech Club',
-      timestamp: '2 days ago',
-      initials: 'NT'
-    }
-  ];
-
-  const mockFriends = [
-    {
-      id: '1',
-      name: 'Emma Chen',
-      email: 'emma.chen@astranova.edu',
-      initials: 'EC',
-      lastActive: '2 hours ago'
-    },
-    {
-      id: '2',
-      name: 'Alex Kumar',
-      email: 'alex.kumar@astranova.edu',
-      initials: 'AK',
-      lastActive: '1 day ago'
-    }
-  ];
-
-  const mockCompanies = [
-    {
-      id: '1',
-      name: 'Nova Tech Club',
-      description: 'Building the next generation of educational technology',
-      category: 'EdTech',
-      initials: 'NT',
-      fundingGoal: 10000,
-      currentFunding: 6500,
-      investors: 23,
-      roi: 15.2,
-      founded: '2024'
-    },
-    {
-      id: '2',
-      name: 'Green Energy Co',
-      description: 'Sustainable energy solutions for the future',
-      category: 'Green Energy',
-      initials: 'GE',
-      fundingGoal: 15000,
-      currentFunding: 8200,
-      investors: 31,
-      roi: 22.8,
-      founded: '2024'
-    }
-  ];
+  // Empty states until real functionality is implemented
+  const transactions: any[] = [];
+  const friends: any[] = [];
+  const companies: any[] = [];
 
   const handleSendToFriend = (friendId: string) => {
-    const friend = mockFriends.find(f => f.id === friendId);
+    const friend = friends.find(f => f.id === friendId);
     setSelectedFriend(friend);
     setSendModalOpen(true);
   };
@@ -113,19 +48,21 @@ export default function Dashboard() {
     // TODO: Implement investment modal
   };
 
+  if (!user) return <div>Loading...</div>;
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <WalletCard
-            balance={2500}
+            balance={user.balance}
             onSend={() => setSendModalOpen(true)}
             onAdd={() => setAddFriendModalOpen(true)}
             onInvest={() => {/* TODO: Navigate to investments */}}
           />
         </div>
         <div className="lg:col-span-2">
-          <TransactionHistory transactions={mockTransactions} />
+          <TransactionHistory transactions={transactions} />
         </div>
       </div>
 
@@ -139,13 +76,19 @@ export default function Dashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {mockFriends.map((friend) => (
-              <FriendCard
-                key={friend.id}
-                friend={friend}
-                onSend={handleSendToFriend}
-              />
-            ))}
+            {friends.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No friends yet. Add some classmates to get started!</p>
+              </div>
+            ) : (
+              friends.map((friend) => (
+                <FriendCard
+                  key={friend.id}
+                  friend={friend}
+                  onSend={handleSendToFriend}
+                />
+              ))
+            )}
           </div>
         </div>
 
@@ -158,13 +101,19 @@ export default function Dashboard() {
             </Button>
           </div>
           <div className="space-y-4">
-            {mockCompanies.map((company) => (
-              <CompanyCard
-                key={company.id}
-                company={company}
-                onInvest={handleInvest}
-              />
-            ))}
+            {companies.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>No companies available. Create the first one!</p>
+              </div>
+            ) : (
+              companies.map((company) => (
+                <CompanyCard
+                  key={company.id}
+                  company={company}
+                  onInvest={handleInvest}
+                />
+              ))
+            )}
           </div>
         </div>
       </div>

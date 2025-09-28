@@ -1,6 +1,7 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Wallet, Users, TrendingUp, History, Building, Star } from "lucide-react";
+import { Wallet, Users, TrendingUp, History, Building, Star, Settings } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Wallet },
@@ -12,6 +13,7 @@ const menuItems = [
 
 export default function Navigation() {
   const [location] = useLocation();
+  const { user } = useAuth();
 
   return (
     <Sidebar>
@@ -43,6 +45,20 @@ export default function Navigation() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {user?.isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={location === "/admin"}
+                    data-testid="link-admin"
+                  >
+                    <Link href="/admin">
+                      <Settings className="w-4 h-4" />
+                      <span>Admin Panel</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
