@@ -1,4 +1,3 @@
-import { Star } from "lucide-react";
 import astraNovaLogo from "@assets/astra-nova-logo.png";
 
 interface AstraMascotProps {
@@ -15,31 +14,26 @@ export default function AstraMascot({ size = "md", animate = false, greeting = f
     lg: "w-12 h-12"
   };
 
-  const animationClass = animate ? "animate-pulse" : "";
-  const greetingClass = greeting ? "hover:scale-110 transition-transform duration-300" : "";
+  // Enhanced logo animations
+  const logoAnimations = animate ? "animate-pulse" : "";
   const bouncingAnimation = animate ? "animate-bounce" : "";
+  const rotateAnimation = animate ? "hover:rotate-12" : "";
+  const scaleAnimation = greeting ? "hover:scale-125" : "";
+  
+  // Combined animation classes
+  const animationClasses = `${logoAnimations} ${bouncingAnimation} ${rotateAnimation} ${scaleAnimation} transition-all duration-500 ease-in-out`;
 
   return (
     <div className={`relative ${className}`}>
-      {/* Main Astra Nova logo mascot */}
-      <img 
-        src={astraNovaLogo}
-        alt="Astra Nova"
-        className={`${sizeClasses[size]} object-contain ${animationClass} ${greetingClass} ${bouncingAnimation} transition-all duration-300`}
-        data-testid="mascot-astra"
-      />
-      
-      {greeting && (
-        <>
-          {/* Sparkle effects for greeting */}
-          <div className="absolute -top-1 -right-1 w-2 h-2">
-            <Star className="w-full h-full text-accent fill-current animate-ping" />
-          </div>
-          <div className="absolute -bottom-1 -left-1 w-1.5 h-1.5">
-            <Star className="w-full h-full text-accent fill-current animate-ping" style={{ animationDelay: "0.5s" }} />
-          </div>
-        </>
-      )}
+      {/* Logo with black background container */}
+      <div className={`${sizeClasses[size]} bg-black rounded-full p-1 ${animationClasses}`}>
+        <img 
+          src={astraNovaLogo}
+          alt="Astra Nova"
+          className="w-full h-full object-contain"
+          data-testid="mascot-astra"
+        />
+      </div>
     </div>
   );
 }
