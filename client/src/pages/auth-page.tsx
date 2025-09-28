@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Star, Wallet, Users, TrendingUp, Send } from "lucide-react";
+import AstraMascot from "@/components/AstraMascot";
 import { useState } from "react";
 import { Redirect } from "wouter";
 
@@ -36,7 +37,7 @@ export default function AuthPage() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <Star className="w-10 h-10 text-accent fill-current" />
+              <AstraMascot size="lg" animate={true} />
               <h1 className="text-3xl font-bold">Astra Trader</h1>
             </div>
             <p className="text-muted-foreground">
@@ -150,8 +151,8 @@ export default function AuthPage() {
       {/* Right side - Hero section */}
       <div className="hidden lg:flex flex-col justify-center items-center p-8 bg-primary text-primary-foreground">
         <div className="text-center space-y-6">
-          <div className="mb-4">
-            <Star className="w-16 h-16 text-accent fill-current mx-auto" />
+          <div className="mb-4 flex justify-center">
+            <AstraMascot size="lg" animate={true} />
           </div>
           <h2 className="text-4xl font-bold">Welcome to Astra Trader</h2>
           <p className="text-xl text-primary-foreground/80 max-w-md">

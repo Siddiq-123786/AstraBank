@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, Plus, TrendingUp, Star } from "lucide-react";
+import { Send, Plus, TrendingUp } from "lucide-react";
+import AstraMascot from "./AstraMascot";
 
 interface WalletCardProps {
   balance: number;
@@ -15,7 +16,7 @@ export default function WalletCard({ balance, onSend, onAdd, onInvest }: WalletC
       <CardHeader className="text-center">
         <CardTitle className="text-sm text-muted-foreground">Your Balance</CardTitle>
         <div className="flex items-center justify-center gap-2 mt-2">
-          <Star className="w-6 h-6 text-accent fill-current" />
+          <AstraMascot size="sm" animate={false} />
           <span className="text-3xl font-mono font-bold text-accent">{balance.toLocaleString()}</span>
           <span className="text-lg text-muted-foreground">Astras</span>
         </div>

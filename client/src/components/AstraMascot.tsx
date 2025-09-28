@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import astraNovaLogo from "@assets/astra-nova-logo.png";
 
 interface AstraMascotProps {
   size?: "sm" | "md" | "lg";
@@ -16,12 +17,15 @@ export default function AstraMascot({ size = "md", animate = false, greeting = f
 
   const animationClass = animate ? "animate-pulse" : "";
   const greetingClass = greeting ? "hover:scale-110 transition-transform duration-300" : "";
+  const bouncingAnimation = animate ? "animate-bounce" : "";
 
   return (
     <div className={`relative ${className}`}>
-      {/* Main star mascot */}
-      <Star 
-        className={`${sizeClasses[size]} text-accent ${animationClass} ${greetingClass} fill-current`}
+      {/* Main Astra Nova logo mascot */}
+      <img 
+        src={astraNovaLogo}
+        alt="Astra Nova"
+        className={`${sizeClasses[size]} object-contain ${animationClass} ${greetingClass} ${bouncingAnimation} transition-all duration-300`}
         data-testid="mascot-astra"
       />
       
