@@ -1,7 +1,7 @@
 // Referenced from blueprint:javascript_database and javascript_auth_all_persistance integrations
-import { users, friendships, type User, type InsertUser, type Friendship } from "@shared/schema";
+import { users, friendships, transactions, type User, type InsertUser, type Friendship, type Transaction, type InsertTransaction } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, desc, sql } from "drizzle-orm";
 import session, { Store } from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -23,6 +23,9 @@ export interface IStorage {
   getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
   updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean>;
   getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]>;
+  // Money transfer functionality
+  sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
+  getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received' })[]>;
   sessionStore: Store;
 }
 
@@ -184,6 +187,90 @@ export class DatabaseStorage implements IStorage {
           eq(friendships.status, 'pending')
         )
       );
+
+    return result;
+  }
+
+  async sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Start transaction
+      return await db.transaction(async (tx) => {
+        // Verify recipient exists first
+        const recipient = await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, toUserId))
+          .limit(1);
+
+        if (recipient.length === 0) {
+          return { success: false, error: "Recipient not found" };
+        }
+
+        // Use atomic conditional update for sender's balance to prevent race conditions
+        const senderUpdate = await tx
+          .update(users)
+          .set({ balance: sql`${users.balance} - ${amount}` })
+          .where(
+            and(
+              eq(users.id, fromUserId),
+              sql`${users.balance} >= ${amount}`
+            )
+          );
+
+        if ((senderUpdate.rowCount ?? 0) === 0) {
+          return { success: false, error: "Insufficient balance or sender not found" };
+        }
+
+        // Update recipient's balance  
+        await tx
+          .update(users)
+          .set({ balance: sql`${users.balance} + ${amount}` })
+          .where(eq(users.id, toUserId));
+
+        // Record a single transaction record (will be interpreted based on user perspective)
+        await tx.insert(transactions).values({
+          fromUserId: fromUserId,
+          toUserId: toUserId,
+          amount: amount,
+          type: 'transfer',
+          description: description,
+        });
+
+        return { success: true };
+      });
+    } catch (error) {
+      console.error('Send money error:', error);
+      return { success: false, error: "Transaction failed" };
+    }
+  }
+
+  async getTransactions(userId: string, limit: number = 50): Promise<(Transaction & { transactionType: 'sent' | 'received' })[]> {
+    const result = await db
+      .select({
+        id: transactions.id,
+        fromUserId: transactions.fromUserId,
+        toUserId: transactions.toUserId,
+        amount: transactions.amount,
+        type: transactions.type,
+        description: transactions.description,
+        createdAt: transactions.createdAt,
+        // Add computed field for user perspective
+        transactionType: sql<'sent' | 'received'>`
+          CASE 
+            WHEN ${transactions.fromUserId} = ${userId} THEN 'sent'
+            ELSE 'received'
+          END
+        `.as('transactionType')
+      })
+      .from(transactions)
+      .where(
+        or(
+          eq(transactions.fromUserId, userId),
+          eq(transactions.toUserId, userId)
+        )
+      )
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit);
 
     return result;
   }

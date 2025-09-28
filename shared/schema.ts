@@ -50,7 +50,24 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
+// Transaction schemas
+export const insertTransactionSchema = createInsertSchema(transactions).pick({
+  fromUserId: true,
+  toUserId: true,
+  amount: true,
+  type: true,
+  description: true,
+});
+
+export const sendMoneySchema = z.object({
+  toUserId: z.string().uuid(),
+  amount: z.number().int().positive().max(100000), // Max 100,000 Astras per transaction
+  description: z.string().trim().min(1, "Description is required").max(200),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type SendMoneyRequest = z.infer<typeof sendMoneySchema>;
 export type User = typeof users.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Company = typeof companies.$inferSelect;

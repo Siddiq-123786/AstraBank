@@ -3,6 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { sendMoneySchema, type SendMoneyRequest, type Transaction } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // sets up /api/register, /api/login, /api/logout, /api/user
@@ -129,6 +130,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, message: "Friend request rejected" });
     } catch (error) {
       res.status(500).json({ error: "Failed to reject friend request" });
+    }
+  });
+
+  // Money transfer routes
+  app.post("/api/send-money", requireAuth, async (req, res) => {
+    try {
+      const validation = sendMoneySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid request data", details: validation.error.errors });
+      }
+
+      const { toUserId, amount, description } = validation.data;
+      
+      // Verify friendship exists and is accepted
+      const friends = await storage.getFriends(req.user!.id);
+      const isFriend = friends.some(friend => 
+        friend.id === toUserId && friend.friendshipStatus === 'accepted'
+      );
+
+      if (!isFriend) {
+        return res.status(403).json({ error: "Can only send money to accepted friends" });
+      }
+
+      const result = await storage.sendMoney(req.user!.id, toUserId, amount, description);
+      
+      if (result.success) {
+        res.json({ success: true, message: "Money sent successfully" });
+      } else {
+        res.status(400).json({ error: result.error || "Failed to send money" });
+      }
+    } catch (error) {
+      console.error('Send money route error:', error);
+      res.status(500).json({ error: "Failed to send money" });
+    }
+  });
+
+  app.get("/api/transactions", requireAuth, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const transactions = await storage.getTransactions(req.user!.id, limit);
+      res.json(transactions);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch transactions" });
     }
   });
 

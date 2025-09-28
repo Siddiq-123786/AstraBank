@@ -5,19 +5,20 @@ import WalletCard from "@/components/WalletCard";
 import TransactionHistory from "@/components/TransactionHistory";
 import FriendCard from "@/components/FriendCard";
 import CompanyCard from "@/components/CompanyCard";
-import SendAstraModal from "@/components/SendAstraModal";
+// SendAstraModal removed - now using SendMoneyModal
 import AddFriendModal from "@/components/AddFriendModal";
 import CreateCompanyModal from "@/components/CreateCompanyModal";
+import SendMoneyModal from "@/components/SendMoneyModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 // Remove User import as we're using a custom type now
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const [sendModalOpen, setSendModalOpen] = useState(false);
+  const [sendMoneyModalOpen, setSendMoneyModalOpen] = useState(false);
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
   const [createCompanyModalOpen, setCreateCompanyModalOpen] = useState(false);
-  const [selectedFriend, setSelectedFriend] = useState<any>(null);
+  const [selectedFriendId, setSelectedFriendId] = useState<string>("");
 
   // Fetch friends data
   const { data: friends = [], isLoading: friendsLoading } = useQuery<{ id: string; email: string; balance: number; friendshipStatus: string; requestedByCurrent: boolean }[]>({
@@ -28,15 +29,9 @@ export default function Dashboard() {
   const transactions: any[] = [];
   const companies: any[] = [];
 
-  const handleSendToFriend = (friendId: string) => {
-    const friend = friends.find(f => f.id === friendId);
-    setSelectedFriend(friend);
-    setSendModalOpen(true);
-  };
-
-  const handleSend = (friendId: string, amount: number, message: string) => {
-    console.log('Sending:', amount, 'to:', friendId, 'message:', message);
-    // TODO: Implement actual send functionality
+  const handleSendMoney = (friendId: string) => {
+    setSelectedFriendId(friendId);
+    setSendMoneyModalOpen(true);
   };
 
   // Friend addition is now handled by AddFriendModal
@@ -59,7 +54,7 @@ export default function Dashboard() {
         <div className="lg:col-span-1">
           <WalletCard
             balance={user.balance}
-            onSend={() => setSendModalOpen(true)}
+            onSend={() => setSendMoneyModalOpen(true)}
             onAdd={() => setAddFriendModalOpen(true)}
             onInvest={() => {/* TODO: Navigate to investments */}}
           />
@@ -73,7 +68,11 @@ export default function Dashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Friends</h2>
-            <Button size="sm" onClick={() => setAddFriendModalOpen(true)}>
+            <Button 
+              size="sm" 
+              onClick={() => setAddFriendModalOpen(true)}
+              data-testid="button-add-friend"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Friend
             </Button>
@@ -92,7 +91,7 @@ export default function Dashboard() {
                 <FriendCard
                   key={friend.id}
                   friend={friend}
-                  onSend={handleSendToFriend}
+                  onSend={handleSendMoney}
                 />
               ))
             )}
@@ -125,25 +124,20 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <SendAstraModal
-        isOpen={sendModalOpen}
-        onClose={() => {
-          setSendModalOpen(false);
-          setSelectedFriend(null);
-        }}
-        selectedFriend={selectedFriend}
-        onSend={handleSend}
+      <SendMoneyModal
+        open={sendMoneyModalOpen}
+        onOpenChange={setSendMoneyModalOpen}
+        selectedFriendId={selectedFriendId}
       />
 
       <AddFriendModal
-        isOpen={addFriendModalOpen}
-        onClose={() => setAddFriendModalOpen(false)}
+        open={addFriendModalOpen}
+        onOpenChange={setAddFriendModalOpen}
       />
 
       <CreateCompanyModal
-        isOpen={createCompanyModalOpen}
-        onClose={() => setCreateCompanyModalOpen(false)}
-        onCreate={handleCreateCompany}
+        open={createCompanyModalOpen}
+        onOpenChange={setCreateCompanyModalOpen}
       />
     </div>
   );

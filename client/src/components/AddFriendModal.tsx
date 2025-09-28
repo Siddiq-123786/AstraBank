@@ -9,11 +9,11 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface AddFriendModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps) {
+export default function AddFriendModal({ open, onOpenChange }: AddFriendModalProps) {
   const [email, setEmail] = useState('');
   const { toast } = useToast();
 
@@ -29,7 +29,7 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
         description: `Sent a friend request to ${email}`,
       });
       setEmail('');
-      onClose();
+      onOpenChange(false);
     },
     onError: (error: any) => {
       toast({
@@ -47,7 +47,7 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(open) => onOpenChange(open)}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export default function AddFriendModal({ isOpen, onClose }: AddFriendModalProps)
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               Cancel
             </Button>
             <Button 
