@@ -69,6 +69,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Friends routes - protected by authentication
+  app.post("/api/friends/add", requireAuth, async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+      
+      await storage.addFriend(req.user!.id, email);
+      res.json({ success: true, message: "Friend request sent" });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/friends", requireAuth, async (req, res) => {
+    try {
+      const friends = await storage.getFriends(req.user!.id);
+      res.json(friends);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch friends" });
+    }
+  });
+
+  app.get("/api/friends/requests", requireAuth, async (req, res) => {
+    try {
+      const requests = await storage.getFriendRequests(req.user!.id);
+      res.json(requests);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch friend requests" });
+    }
+  });
+
+  app.post("/api/friends/:friendId/accept", requireAuth, async (req, res) => {
+    try {
+      const { friendId } = req.params;
+      const updated = await storage.updateFriendshipStatus(req.user!.id, friendId, 'accepted');
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Friend request not found or already processed" });
+      }
+      
+      res.json({ success: true, message: "Friend request accepted" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to accept friend request" });
+    }
+  });
+
+  app.post("/api/friends/:friendId/reject", requireAuth, async (req, res) => {
+    try {
+      const { friendId } = req.params;
+      const updated = await storage.updateFriendshipStatus(req.user!.id, friendId, 'blocked');
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Friend request not found or already processed" });
+      }
+      
+      res.json({ success: true, message: "Friend request rejected" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reject friend request" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
@@ -78,6 +141,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 function requireAdmin(req: any, res: any, next: any) {
   if (!req.isAuthenticated() || !req.user?.isAdmin) {
     return res.status(403).json({ error: "Admin access required" });
+  }
+  next();
+}
+
+// Middleware to require authentication
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
   }
   next();
 }

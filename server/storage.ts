@@ -1,7 +1,7 @@
 // Referenced from blueprint:javascript_database and javascript_auth_all_persistance integrations
-import { users, type User, type InsertUser } from "@shared/schema";
+import { users, friendships, type User, type InsertUser, type Friendship } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import session, { Store } from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -18,6 +18,11 @@ export interface IStorage {
   makeAdmin(userId: string): Promise<void>;
   removeAdmin(userId: string): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  // Friends functionality
+  addFriend(userId: string, friendEmail: string): Promise<void>;
+  getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
+  updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean>;
+  getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]>;
   sessionStore: Store;
 }
 
@@ -77,6 +82,110 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  // Friends functionality
+  async addFriend(userId: string, friendEmail: string): Promise<void> {
+    const friend = await this.getUserByEmail(friendEmail);
+    if (!friend) {
+      throw new Error('User not found');
+    }
+    
+    if (friend.id === userId) {
+      throw new Error('Cannot add yourself as a friend');
+    }
+
+    // Check if friendship already exists
+    const existingFriendship = await db
+      .select()
+      .from(friendships)
+      .where(
+        or(
+          and(eq(friendships.userId, userId), eq(friendships.friendId, friend.id)),
+          and(eq(friendships.userId, friend.id), eq(friendships.friendId, userId))
+        )
+      );
+
+    if (existingFriendship.length > 0) {
+      throw new Error('Friendship already exists');
+    }
+
+    // Create friendship with pending status
+    await db.insert(friendships).values({
+      userId: userId,
+      friendId: friend.id,
+      status: 'pending'
+    });
+  }
+
+  async getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipStatus: string; requestedByCurrent: boolean })[]> {
+    const result = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        balance: users.balance,
+        friendshipStatus: friendships.status,
+        friendshipUserId: friendships.userId,
+        friendshipFriendId: friendships.friendId
+      })
+      .from(friendships)
+      .innerJoin(
+        users,
+        or(
+          and(eq(friendships.userId, userId), eq(users.id, friendships.friendId)),
+          and(eq(friendships.friendId, userId), eq(users.id, friendships.userId))
+        )
+      )
+      .where(
+        or(
+          eq(friendships.userId, userId),
+          eq(friendships.friendId, userId)
+        )
+      );
+
+    return result.map(row => ({
+      id: row.id,
+      email: row.email,
+      balance: row.balance,
+      friendshipStatus: row.friendshipStatus,
+      requestedByCurrent: row.friendshipUserId === userId
+    }));
+  }
+
+  async updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean> {
+    // Only allow the recipient of a pending request to accept/reject it
+    const result = await db
+      .update(friendships)
+      .set({ status })
+      .where(
+        and(
+          eq(friendships.friendId, userId),      // Current user is the recipient
+          eq(friendships.userId, friendId),      // The other user is the sender
+          eq(friendships.status, 'pending')      // Request is still pending
+        )
+      );
+    
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]> {
+    const result = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        balance: users.balance,
+        friendshipId: friendships.id
+      })
+      .from(friendships)
+      .innerJoin(users, eq(users.id, friendships.userId))
+      .where(
+        and(
+          eq(friendships.friendId, userId),
+          eq(friendships.status, 'pending')
+        )
+      );
+
+    return result;
   }
 }
 

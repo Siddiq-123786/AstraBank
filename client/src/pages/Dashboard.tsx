@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 import WalletCard from "@/components/WalletCard";
 import TransactionHistory from "@/components/TransactionHistory";
 import FriendCard from "@/components/FriendCard";
@@ -9,6 +10,7 @@ import AddFriendModal from "@/components/AddFriendModal";
 import CreateCompanyModal from "@/components/CreateCompanyModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+// Remove User import as we're using a custom type now
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -17,9 +19,13 @@ export default function Dashboard() {
   const [createCompanyModalOpen, setCreateCompanyModalOpen] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<any>(null);
 
-  // Empty states until real functionality is implemented
+  // Fetch friends data
+  const { data: friends = [], isLoading: friendsLoading } = useQuery<{ id: string; email: string; balance: number; friendshipStatus: string; requestedByCurrent: boolean }[]>({
+    queryKey: ['/api/friends'],
+  });
+
+  // Empty states for features not yet implemented
   const transactions: any[] = [];
-  const friends: any[] = [];
   const companies: any[] = [];
 
   const handleSendToFriend = (friendId: string) => {
@@ -33,10 +39,7 @@ export default function Dashboard() {
     // TODO: Implement actual send functionality
   };
 
-  const handleAddFriend = (email: string) => {
-    console.log('Adding friend:', email);
-    // TODO: Implement actual add friend functionality
-  };
+  // Friend addition is now handled by AddFriendModal
 
   const handleCreateCompany = (company: any) => {
     console.log('Creating company:', company);
@@ -76,7 +79,11 @@ export default function Dashboard() {
             </Button>
           </div>
           <div className="space-y-3">
-            {friends.length === 0 ? (
+            {friendsLoading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <p>Loading friends...</p>
+              </div>
+            ) : friends.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No friends yet. Add some classmates to get started!</p>
               </div>
@@ -131,7 +138,6 @@ export default function Dashboard() {
       <AddFriendModal
         isOpen={addFriendModalOpen}
         onClose={() => setAddFriendModalOpen(false)}
-        onAdd={handleAddFriend}
       />
 
       <CreateCompanyModal
