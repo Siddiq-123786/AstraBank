@@ -37,10 +37,10 @@ export default function AuthPage() {
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Star className="w-10 h-10 text-accent" />
-              <h1 className="text-3xl font-bold">Astra Nova</h1>
+              <h1 className="text-3xl font-bold">Astra Trader</h1>
             </div>
             <p className="text-muted-foreground">
-              Join the school currency platform
+              Master the school currency markets
             </p>
           </div>
 
@@ -55,7 +55,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle>Create Account</CardTitle>
                   <CardDescription>
-                    Enter your Astra Nova email to get started with 1,000 Astras
+                    Enter your Astra Nova email to start trading with 1,000 Astras
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

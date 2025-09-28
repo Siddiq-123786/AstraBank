@@ -21,8 +21,8 @@ export default function Navigation() {
         <div className="flex items-center gap-2">
           <Star className="w-8 h-8 text-accent" />
           <div>
-            <h1 className="font-bold text-lg">Astra Nova</h1>
-            <p className="text-sm text-muted-foreground">Currency Platform</p>
+            <h1 className="font-bold text-lg">Astra Trader</h1>
+            <p className="text-sm text-muted-foreground">Trading Platform</p>
           </div>
         </div>
       </SidebarHeader>

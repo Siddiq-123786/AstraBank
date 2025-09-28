@@ -1,8 +1,8 @@
-# Astra Nova Currency Platform
+# Astra Trader
 
 ## Overview
 
-The Astra Nova Currency Platform is a school-based virtual currency system that enables students to manage "Astras" (⭐), connect with classmates, send money to friends, and invest in student-run companies. The platform combines social finance features inspired by Venmo with investment capabilities similar to Robinhood, all tailored for an educational environment.
+Astra Trader is a school-based virtual currency system that enables students to manage "Astras" (⭐), connect with classmates, send money to friends, and invest in student-run companies. The platform combines social finance features inspired by Venmo with investment capabilities similar to Robinhood, all tailored for an educational environment.
 
 The system features a comprehensive user management system with admin controls, transaction tracking, friend connections, and a company investment marketplace. It's designed to gamify financial literacy education while providing practical experience with digital payments and investment concepts.
 
