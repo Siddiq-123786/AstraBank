@@ -36,7 +36,7 @@ export default function AuthPage() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <Star className="w-10 h-10 text-accent" />
+              <Star className="w-10 h-10 text-accent fill-current" />
               <h1 className="text-3xl font-bold">Astra Trader</h1>
             </div>
             <p className="text-muted-foreground">

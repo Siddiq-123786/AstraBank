@@ -19,7 +19,7 @@ export default function Navigation() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <Star className="w-8 h-8 text-accent" />
+          <Star className="w-8 h-8 text-accent fill-current" />
           <div>
             <h1 className="font-bold text-lg">Astra Trader</h1>
             <p className="text-sm text-muted-foreground">Trading Platform</p>

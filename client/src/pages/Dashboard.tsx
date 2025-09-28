@@ -5,6 +5,7 @@ import WalletCard from "@/components/WalletCard";
 import TransactionHistory from "@/components/TransactionHistory";
 import FriendCard from "@/components/FriendCard";
 import CompanyCard from "@/components/CompanyCard";
+import PersonalizedGreeting from "@/components/PersonalizedGreeting";
 // SendAstraModal removed - now using SendMoneyModal
 import AddFriendModal from "@/components/AddFriendModal";
 import CreateCompanyModal from "@/components/CreateCompanyModal";
@@ -59,6 +60,8 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      <PersonalizedGreeting />
+      
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <WalletCard
