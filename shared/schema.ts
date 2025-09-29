@@ -46,24 +46,6 @@ export const friendships = pgTable("friendships", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
-// Conversations table for chat system
-export const conversations = pgTable("conversations", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  user1Id: varchar("user1_id").notNull().references(() => users.id),
-  user2Id: varchar("user2_id").notNull().references(() => users.id),
-  lastMessageAt: timestamp("last_message_at").default(sql`now()`),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-});
-
-// Messages table for chat system
-export const messages = pgTable("messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
-  senderId: varchar("sender_id").notNull().references(() => users.id),
-  content: text("content").notNull(),
-  isRead: boolean("is_read").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-});
 
 export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
@@ -106,32 +88,13 @@ export const investmentSchema = z.object({
   amount: z.number().int().positive().min(100).max(50000), // Min 100, Max 50K Astras per investment
 });
 
-// Chat schemas
-export const insertConversationSchema = createInsertSchema(conversations).pick({
-  user1Id: true,
-  user2Id: true,
-});
-
-export const insertMessageSchema = createInsertSchema(messages).pick({
-  conversationId: true,
-  senderId: true,
-  content: true,
-});
-
-export const sendMessageSchema = z.object({
-  toUserId: z.string().uuid(),
-  content: z.string().trim().min(1, "Message cannot be empty").max(1000),
-});
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
-export type InsertConversation = z.infer<typeof insertConversationSchema>;
-export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type SendMoneyRequest = z.infer<typeof sendMoneySchema>;
 export type CreateCompanyRequest = z.infer<typeof createCompanySchema>;
 export type InvestmentRequest = z.infer<typeof investmentSchema>;
-export type SendMessageRequest = z.infer<typeof sendMessageSchema>;
 
 // API Transaction type with counterpart information
 export interface ApiTransaction {
@@ -149,5 +112,3 @@ export type User = typeof users.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Company = typeof companies.$inferSelect;
 export type Friendship = typeof friendships.$inferSelect;
-export type Conversation = typeof conversations.$inferSelect;
-export type Message = typeof messages.$inferSelect;
