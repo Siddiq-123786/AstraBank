@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import AstraMascot from "./AstraMascot";
+import { Badge } from "@/components/ui/badge";
 
 export default function PersonalizedGreeting() {
   const { user } = useAuth();
@@ -26,11 +27,18 @@ export default function PersonalizedGreeting() {
   return (
     <div className="flex items-center gap-2 p-3 rounded-lg bg-card border" data-testid="greeting-display">
       <AstraMascot size="md" greeting={true} />
-      <div>
+      <div className="flex-1">
         <p className="text-sm text-muted-foreground">Welcome back!</p>
-        <p className="font-semibold text-foreground" data-testid="text-greeting-name">
-          Hi {displayName}!
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="font-semibold text-foreground" data-testid="text-greeting-name">
+            Hi {displayName}!
+          </p>
+          {user.isFounder && (
+            <Badge variant="default" className="bg-accent text-accent-foreground text-xs">
+              Founder
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );

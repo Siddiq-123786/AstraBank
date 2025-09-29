@@ -120,6 +120,9 @@ export default function AdminPanel() {
                     <span className="font-mono text-sm">
                       {user.balance.toLocaleString()} ⭐
                     </span>
+                    {user.isFounder && (
+                      <Badge variant="default" className="bg-accent text-accent-foreground">Founder</Badge>
+                    )}
                     {user.isAdmin && (
                       <Badge variant="secondary">Admin</Badge>
                     )}

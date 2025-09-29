@@ -10,6 +10,7 @@ export const users = pgTable("users", {
   balance: integer("balance").notNull().default(1000),
   isAdmin: boolean("is_admin").notNull().default(false),
   isBanned: boolean("is_banned").notNull().default(false),
+  isFounder: boolean("is_founder").notNull().default(false),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
