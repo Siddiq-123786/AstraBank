@@ -37,7 +37,7 @@ export default function AuthPage() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <AstraMascot size="lg" animate={true} />
+              <AstraMascot size="lg" animate={false} />
               <h1 className="text-3xl font-bold">Astra Trader</h1>
             </div>
             <p className="text-muted-foreground">
@@ -152,7 +152,7 @@ export default function AuthPage() {
       <div className="hidden lg:flex flex-col justify-center items-center p-8 bg-primary text-primary-foreground">
         <div className="text-center space-y-6">
           <div className="mb-4 flex justify-center">
-            <AstraMascot size="lg" animate={true} />
+            <AstraMascot size="lg" animate={false} />
           </div>
           <h2 className="text-4xl font-bold">Welcome to Astra Trader</h2>
           <p className="text-xl text-primary-foreground/80 max-w-md">

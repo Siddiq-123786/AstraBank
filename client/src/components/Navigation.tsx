@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Wallet, Users, TrendingUp, History, Building, Settings, Search } from "lucide-react";
+import { Wallet, Users, TrendingUp, History, Building, Settings, Search, BookOpen } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import AstraMascot from "./AstraMascot";
@@ -7,6 +7,7 @@ import AstraMascot from "./AstraMascot";
 const menuItems = [
   { title: "Dashboard", url: "/", icon: Wallet },
   { title: "Users", url: "/users", icon: Search },
+  { title: "Directory", url: "/directory", icon: BookOpen },
   { title: "Friends", url: "/friends", icon: Users },
   { title: "Investments", url: "/investments", icon: TrendingUp },
   { title: "Companies", url: "/companies", icon: Building },
@@ -21,7 +22,7 @@ export default function Navigation() {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <AstraMascot size="md" animate={true} />
+          <AstraMascot size="md" animate={false} />
           <div>
             <h1 className="font-bold text-lg">Astra Trader</h1>
             <p className="text-sm text-muted-foreground">Trading Platform</p>

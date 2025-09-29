@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Users as UsersIcon, Star, UserPlus, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type UserProfile = {
   id: string;
@@ -13,6 +15,15 @@ type UserProfile = {
   isAdmin: boolean;
   createdAt: string;
 };
+
+interface Friend {
+  id: string;
+  email: string;
+  balance: number;
+  isAdmin: boolean;
+  friendshipStatus: string;
+  requestedByCurrent: boolean;
+}
 
 function getUserInitials(email: string): string {
   const username = email.split('@')[0];
@@ -25,10 +36,43 @@ function getUsername(email: string): string {
 
 export default function Users() {
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   
   const { data: users = [], isLoading, error } = useQuery<UserProfile[]>({
     queryKey: ['/api/users'],
   });
+
+  // Fetch friends to check friendship status
+  const { data: friends = [] } = useQuery<Friend[]>({
+    queryKey: ['/api/friends'],
+  });
+
+  const addFriendMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest('POST', '/api/friends/add', { email });
+      return res.json();
+    },
+    onSuccess: (_, email) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/friends'] });
+      toast({
+        title: "Friend request sent!",
+        description: `Sent a friend request to ${email}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send friend request",
+        description: error.message || "Could not send friend request",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Helper to check if user is already a friend or has pending request
+  const getFriendshipStatus = (userId: string) => {
+    const friendship = friends.find(f => f.id === userId);
+    return friendship ? friendship.friendshipStatus : null;
+  };
 
   if (isLoading) {
     return (
@@ -137,15 +181,29 @@ export default function Users() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex-1"
-                      data-testid={`button-add-friend-${user.id}`}
-                    >
-                      <UserPlus className="w-4 h-4 mr-1" />
-                      Add Friend
-                    </Button>
+                    {getFriendshipStatus(user.id) === null && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1"
+                        data-testid={`button-add-friend-${user.id}`}
+                        onClick={() => addFriendMutation.mutate(user.email)}
+                        disabled={addFriendMutation.isPending}
+                      >
+                        <UserPlus className="w-4 h-4 mr-1" />
+                        Add Friend
+                      </Button>
+                    )}
+                    {getFriendshipStatus(user.id) === 'pending' && (
+                      <Badge variant="secondary" className="flex-1 justify-center" data-testid={`badge-pending-${user.id}`}>
+                        Request Pending
+                      </Badge>
+                    )}
+                    {getFriendshipStatus(user.id) === 'accepted' && (
+                      <Badge variant="default" className="flex-1 justify-center" data-testid={`badge-friends-${user.id}`}>
+                        Friends
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardContent>

@@ -16,12 +16,14 @@ import NotFound from "@/pages/not-found";
 import History from "@/pages/History";
 import Friends from "@/pages/Friends";
 import Users from "@/pages/Users";
+import Directory from "@/pages/Directory";
 
 function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/users" component={Users} />
+      <ProtectedRoute path="/directory" component={Directory} />
       <ProtectedRoute path="/friends" component={Friends} />
       <ProtectedRoute path="/investments" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Investments Page</h1><p>Coming soon...</p></div>} />
       <ProtectedRoute path="/companies" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Companies Page</h1><p>Coming soon...</p></div>} />
