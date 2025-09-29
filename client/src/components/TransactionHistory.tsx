@@ -126,10 +126,10 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
       
       {/* Transaction Details Modal */}
       <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           {selectedTransaction && (
             <>
-              <DialogHeader>
+              <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
                 <DialogTitle className="flex items-center gap-2">
                   Transaction Details
                   <Badge variant="outline" className="ml-auto">
@@ -138,7 +138,7 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                 </DialogTitle>
               </DialogHeader>
               
-              <div className="space-y-6">
+              <div className="space-y-6 pb-4">
                 {/* Transaction Summary */}
                 <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-3">
@@ -173,8 +173,8 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                     <MessageSquare className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Description</span>
                   </div>
-                  <div className="bg-muted/20 p-3 rounded-md">
-                    <p className="text-sm break-words">{selectedTransaction.description}</p>
+                  <div className="bg-muted/20 p-3 rounded-md max-h-32 overflow-y-auto">
+                    <p className="text-sm break-words whitespace-pre-wrap leading-relaxed">{selectedTransaction.description}</p>
                   </div>
                 </div>
 
