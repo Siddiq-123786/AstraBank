@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Wallet, Users, TrendingUp, History, Building, Settings, Search, MessageCircle } from "lucide-react";
+import { Wallet, Users, TrendingUp, History, Building, Settings, Search } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import AstraMascot from "./AstraMascot";
@@ -8,7 +8,6 @@ const menuItems = [
   { title: "Dashboard", url: "/", icon: Wallet },
   { title: "Users", url: "/users", icon: Search },
   { title: "Friends", url: "/friends", icon: Users },
-  { title: "Chat", url: "/chat", icon: MessageCircle },
   { title: "Investments", url: "/investments", icon: TrendingUp },
   { title: "Companies", url: "/companies", icon: Building },
   { title: "History", url: "/history", icon: History },
