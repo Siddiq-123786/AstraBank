@@ -75,7 +75,7 @@ export function setupAuth(app: Express) {
     }
 
     // Special handling for admin users (case-insensitive)
-    const adminEmails = ['siddiq.a@astranova.org', 'cosette@astranova.org'];
+    const adminEmails = ['siddiq.a@astranova.org', 'cosette@astranova.org', 'tomo@astranova.org'];
     const isAdmin = adminEmails.includes(emailLower);
     const balance = isAdmin ? 30000 : 2000;
 
