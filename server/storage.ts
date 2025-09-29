@@ -60,7 +60,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         email: insertUser.email,
         password: insertUser.password,
-        balance: insertUser.balance || 1000,
+        balance: insertUser.balance || 2000,
         isAdmin: insertUser.isAdmin || false,
         isBanned: false,
       })
