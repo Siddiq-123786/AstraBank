@@ -6,16 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
-import { Shield, DollarSign, Ban, UserX } from "lucide-react";
+import { Shield, DollarSign, Ban, UserX, Plus, Minus } from "lucide-react";
 
 export default function AdminPanel() {
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newBalance, setNewBalance] = useState('');
+  const [adjustmentAmount, setAdjustmentAmount] = useState('');
+  const [adjustmentDescription, setAdjustmentDescription] = useState('');
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ['/api/admin/users'],
@@ -26,14 +28,22 @@ export default function AdminPanel() {
   });
 
   const updateBalanceMutation = useMutation({
-    mutationFn: async ({ userId, balance }: { userId: string; balance: number }) => {
-      await apiRequest('POST', `/api/admin/users/${userId}/balance`, { balance });
+    mutationFn: async ({ userId, amount, description }: { userId: string; amount: number; description: string }) => {
+      await apiRequest('POST', `/api/admin/users/${userId}/balance`, { amount, description });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
-      toast({ title: "Balance updated successfully" });
+      toast({ title: "Balance adjusted successfully" });
       setSelectedUser(null);
-      setNewBalance('');
+      setAdjustmentAmount('');
+      setAdjustmentDescription('');
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to adjust balance", 
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
     }
   });
 
@@ -78,10 +88,16 @@ export default function AdminPanel() {
   });
 
   const handleUpdateBalance = () => {
-    if (selectedUser && newBalance) {
+    if (selectedUser && adjustmentAmount && adjustmentDescription.trim()) {
+      const amount = parseInt(adjustmentAmount);
+      if (isNaN(amount)) {
+        toast({ title: "Invalid amount", description: "Please enter a valid number", variant: "destructive" });
+        return;
+      }
       updateBalanceMutation.mutate({
         userId: selectedUser.id,
-        balance: parseInt(newBalance)
+        amount: amount,
+        description: adjustmentDescription.trim()
       });
     }
   };
@@ -141,36 +157,79 @@ export default function AdminPanel() {
                       variant="outline"
                       onClick={() => {
                         setSelectedUser(user);
-                        setNewBalance(user.balance.toString());
+                        setAdjustmentAmount('');
+                        setAdjustmentDescription('');
                       }}
                       data-testid={`button-edit-balance-${user.id}`}
                     >
                       <DollarSign className="w-4 h-4 mr-1" />
-                      Edit Balance
+                      Adjust Balance
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Update Balance for {selectedUser?.email}</DialogTitle>
+                      <DialogTitle>Adjust Balance for {selectedUser?.email}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="new-balance">New Balance (⭐ Astras)</Label>
-                        <Input
-                          id="new-balance"
-                          type="number"
-                          value={newBalance}
-                          onChange={(e) => setNewBalance(e.target.value)}
-                          className="font-mono"
-                          data-testid="input-new-balance"
+                        <Label>Current Balance</Label>
+                        <div className="font-mono text-lg font-semibold">
+                          {selectedUser?.balance.toLocaleString()} ⭐ Astras
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="adjustment-amount">Adjustment Amount</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAdjustmentAmount(adjustmentAmount ? (parseInt(adjustmentAmount) > 0 ? adjustmentAmount : `-${Math.abs(parseInt(adjustmentAmount))}`) : '-100')}
+                            data-testid="button-negative-adjustment"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </Button>
+                          <Input
+                            id="adjustment-amount"
+                            type="number"
+                            value={adjustmentAmount}
+                            onChange={(e) => setAdjustmentAmount(e.target.value)}
+                            placeholder="Enter amount (+ or -)"
+                            className="font-mono flex-1"
+                            data-testid="input-adjustment-amount"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setAdjustmentAmount(adjustmentAmount ? (parseInt(adjustmentAmount) < 0 ? adjustmentAmount : `+${Math.abs(parseInt(adjustmentAmount))}`) : '+100')}
+                            data-testid="button-positive-adjustment"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Use positive numbers to add Astras, negative to subtract
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="adjustment-description">Reason for Adjustment</Label>
+                        <Textarea
+                          id="adjustment-description"
+                          value={adjustmentDescription}
+                          onChange={(e) => setAdjustmentDescription(e.target.value)}
+                          placeholder="Explain why you're adjusting this user's balance..."
+                          data-testid="input-adjustment-description"
                         />
                       </div>
+
                       <Button 
                         onClick={handleUpdateBalance}
-                        disabled={updateBalanceMutation.isPending}
+                        disabled={updateBalanceMutation.isPending || !adjustmentAmount || !adjustmentDescription.trim()}
                         data-testid="button-update-balance"
+                        className="w-full"
                       >
-                        Update Balance
+                        {updateBalanceMutation.isPending ? "Adjusting..." : "Adjust Balance"}
                       </Button>
                     </div>
                   </DialogContent>

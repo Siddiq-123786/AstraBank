@@ -3,7 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { sendMoneySchema, createCompanySchema, investmentSchema, type SendMoneyRequest, type Transaction, type CreateCompanyRequest, type InvestmentRequest } from "@shared/schema";
+import { sendMoneySchema, createCompanySchema, investmentSchema, sendMessageSchema, type SendMoneyRequest, type Transaction, type CreateCompanyRequest, type InvestmentRequest, type SendMessageRequest } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // sets up /api/register, /api/login, /api/logout, /api/user
@@ -22,9 +22,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/users/:id/balance", requireAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const { balance } = req.body;
-      await storage.updateUserBalance(id, balance);
-      res.json({ success: true });
+      const { amount, description } = req.body;
+      const adminId = req.user?.id;
+      
+      if (!adminId) {
+        return res.status(401).json({ error: "Admin not authenticated" });
+      }
+      
+      if (typeof amount !== 'number' || !description || typeof description !== 'string') {
+        return res.status(400).json({ error: "Amount (number) and description (string) are required" });
+      }
+      
+      const result = await storage.adminAdjustBalance(id, amount, description, adminId);
+      
+      if (result.success) {
+        res.json({ success: true });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to update balance" });
     }
@@ -67,6 +82,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to remove admin" });
+    }
+  });
+
+  // User directory - accessible to all authenticated users
+  app.get("/api/users", requireAuth, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      // Return basic user info (exclude sensitive admin fields for non-admins)
+      const publicUsers = users.map(user => ({
+        id: user.id,
+        email: user.email,
+        balance: user.balance,
+        createdAt: user.createdAt
+      }));
+      res.json(publicUsers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch users" });
     }
   });
 
@@ -244,6 +276,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     } catch (error: any) {
       res.status(500).json({ error: "Failed to process investment" });
+    }
+  });
+
+  // Chat routes - protected by authentication
+  app.post("/api/chat/send", requireAuth, async (req, res) => {
+    try {
+      const { toUserId, content } = sendMessageSchema.parse(req.body);
+      const fromUserId = req.user?.id;
+      
+      if (!fromUserId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      if (fromUserId === toUserId) {
+        return res.status(400).json({ error: "Cannot send message to yourself" });
+      }
+
+      const result = await storage.sendMessage(fromUserId, toUserId, content);
+      
+      if (result.success) {
+        res.json({ success: true });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error('Send message error:', error);
+      res.status(500).json({ error: "Failed to send message" });
+    }
+  });
+
+  app.get("/api/chat/conversations", requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      const conversations = await storage.getConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      console.error('Get conversations error:', error);
+      res.status(500).json({ error: "Failed to fetch conversations" });
+    }
+  });
+
+  app.get("/api/chat/conversations/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: "User not authenticated" });
+      }
+
+      const messages = await storage.getMessages(id, userId);
+      
+      // Mark messages as read when fetching them
+      await storage.markMessagesAsRead(id, userId);
+      
+      res.json(messages);
+    } catch (error) {
+      console.error('Get messages error:', error);
+      res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
 

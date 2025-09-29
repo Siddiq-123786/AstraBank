@@ -15,12 +15,16 @@ import AdminPanel from "@/components/AdminPanel";
 import NotFound from "@/pages/not-found";
 import History from "@/pages/History";
 import Friends from "@/pages/Friends";
+import Users from "@/pages/Users";
+import Chat from "@/pages/Chat";
 
 function Router() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/users" component={Users} />
       <ProtectedRoute path="/friends" component={Friends} />
+      <ProtectedRoute path="/chat" component={Chat} />
       <ProtectedRoute path="/investments" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Investments Page</h1><p>Coming soon...</p></div>} />
       <ProtectedRoute path="/companies" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Companies Page</h1><p>Coming soon...</p></div>} />
       <ProtectedRoute path="/history" component={History} />

@@ -1,5 +1,5 @@
 // Referenced from blueprint:javascript_database and javascript_auth_all_persistance integrations
-import { users, friendships, transactions, companies, type User, type InsertUser, type Friendship, type Transaction, type InsertTransaction, type Company, type InsertCompany } from "@shared/schema";
+import { users, friendships, transactions, companies, conversations, messages, type User, type InsertUser, type Friendship, type Transaction, type InsertTransaction, type Company, type InsertCompany, type Conversation, type Message } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import session, { Store } from "express-session";
@@ -13,6 +13,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser & { balance?: number; isAdmin?: boolean }): Promise<User>;
   updateUserBalance(userId: string, newBalance: number): Promise<void>;
+  adminAdjustBalance(userId: string, amount: number, description: string, adminId: string): Promise<{ success: boolean; error?: string }>;
   banUser(userId: string): Promise<void>;
   unbanUser(userId: string): Promise<void>;
   makeAdmin(userId: string): Promise<void>;
@@ -32,6 +33,11 @@ export interface IStorage {
   getAllCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
   investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }>;
+  // Chat functionality
+  sendMessage(fromUserId: string, toUserId: string, content: string): Promise<{ success: boolean; error?: string }>;
+  getConversations(userId: string): Promise<(Conversation & { otherUser: Pick<User, 'id' | 'email'>; lastMessage?: Pick<Message, 'content' | 'createdAt'>; unreadCount: number })[]>;
+  getMessages(conversationId: string, userId: string): Promise<Message[]>;
+  markMessagesAsRead(conversationId: string, userId: string): Promise<void>;
   sessionStore: Store;
 }
 
@@ -71,6 +77,49 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserBalance(userId: string, newBalance: number): Promise<void> {
     await db.update(users).set({ balance: newBalance }).where(eq(users.id, userId));
+  }
+
+  async adminAdjustBalance(userId: string, amount: number, description: string, adminId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Get current user to verify they exist and get current balance
+        const [user] = await tx
+          .select({ balance: users.balance })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1);
+
+        if (!user) {
+          return { success: false, error: "User not found" };
+        }
+
+        const newBalance = user.balance + amount;
+        
+        if (newBalance < 0) {
+          return { success: false, error: "Adjustment would result in negative balance" };
+        }
+
+        // Update user balance
+        await tx
+          .update(users)
+          .set({ balance: newBalance })
+          .where(eq(users.id, userId));
+
+        // Create transaction record
+        await tx.insert(transactions).values({
+          fromUserId: adminId,
+          toUserId: userId,
+          amount: Math.abs(amount),
+          type: 'admin_adjust',
+          description: `Admin adjustment: ${description}`
+        });
+
+        return { success: true };
+      });
+    } catch (error) {
+      console.error('Admin balance adjustment failed:', error);
+      return { success: false, error: "Failed to adjust balance" };
+    }
   }
 
   async banUser(userId: string): Promise<void> {
@@ -431,6 +480,145 @@ export class DatabaseStorage implements IStorage {
     } catch (error: any) {
       return { success: false, error: error.message || "Investment failed" };
     }
+  }
+
+  // Chat functionality
+  async sendMessage(fromUserId: string, toUserId: string, content: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Check if conversation exists between the two users
+        let conversation = await tx
+          .select()
+          .from(conversations)
+          .where(
+            or(
+              and(eq(conversations.user1Id, fromUserId), eq(conversations.user2Id, toUserId)),
+              and(eq(conversations.user1Id, toUserId), eq(conversations.user2Id, fromUserId))
+            )
+          )
+          .limit(1);
+
+        // Create conversation if it doesn't exist
+        if (conversation.length === 0) {
+          const [newConversation] = await tx
+            .insert(conversations)
+            .values({
+              user1Id: fromUserId,
+              user2Id: toUserId,
+              lastMessageAt: sql`now()`
+            })
+            .returning();
+          
+          conversation = [newConversation];
+        } else {
+          // Update last message timestamp
+          await tx
+            .update(conversations)
+            .set({ lastMessageAt: sql`now()` })
+            .where(eq(conversations.id, conversation[0].id));
+        }
+
+        // Insert the message
+        await tx.insert(messages).values({
+          conversationId: conversation[0].id,
+          senderId: fromUserId,
+          content: content.trim()
+        });
+
+        return { success: true };
+      });
+    } catch (error) {
+      console.error('Send message failed:', error);
+      return { success: false, error: "Failed to send message" };
+    }
+  }
+
+  async getConversations(userId: string): Promise<(Conversation & { otherUser: Pick<User, 'id' | 'email'>; lastMessage?: Pick<Message, 'content' | 'createdAt'>; unreadCount: number })[]> {
+    const result = await db
+      .select({
+        conversation: conversations,
+        otherUser: {
+          id: users.id,
+          email: users.email
+        },
+        lastMessage: {
+          content: messages.content,
+          createdAt: messages.createdAt
+        },
+        unreadCount: sql<number>`(
+          SELECT COUNT(*) 
+          FROM ${messages} m 
+          WHERE m.conversation_id = ${conversations.id} 
+          AND m.sender_id != ${userId} 
+          AND m.is_read = false
+        )`.as('unread_count')
+      })
+      .from(conversations)
+      .innerJoin(
+        users,
+        or(
+          and(eq(conversations.user1Id, userId), eq(users.id, conversations.user2Id)),
+          and(eq(conversations.user2Id, userId), eq(users.id, conversations.user1Id))
+        )
+      )
+      .leftJoin(
+        messages,
+        eq(messages.conversationId, conversations.id)
+      )
+      .where(
+        or(
+          eq(conversations.user1Id, userId),
+          eq(conversations.user2Id, userId)
+        )
+      )
+      .orderBy(desc(conversations.lastMessageAt));
+
+    return result.map(row => ({
+      ...row.conversation,
+      otherUser: row.otherUser,
+      lastMessage: row.lastMessage || undefined,
+      unreadCount: Number(row.unreadCount) || 0
+    }));
+  }
+
+  async getMessages(conversationId: string, userId: string): Promise<Message[]> {
+    // First verify user has access to this conversation
+    const conversation = await db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.id, conversationId),
+          or(
+            eq(conversations.user1Id, userId),
+            eq(conversations.user2Id, userId)
+          )
+        )
+      )
+      .limit(1);
+
+    if (conversation.length === 0) {
+      throw new Error('Conversation not found or access denied');
+    }
+
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId))
+      .orderBy(messages.createdAt);
+  }
+
+  async markMessagesAsRead(conversationId: string, userId: string): Promise<void> {
+    // Mark all messages in conversation as read for the user (except their own messages)
+    await db
+      .update(messages)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(messages.conversationId, conversationId),
+          sql`${messages.senderId} != ${userId}`
+        )
+      );
   }
 }
 
