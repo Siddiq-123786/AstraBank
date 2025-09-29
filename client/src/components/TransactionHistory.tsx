@@ -126,10 +126,10 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
       
       {/* Transaction Details Modal */}
       <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl w-[90vw] h-[85vh] flex flex-col">
           {selectedTransaction && (
             <>
-              <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
+              <DialogHeader className="flex-shrink-0 pb-4">
                 <DialogTitle className="flex items-center gap-2">
                   Transaction Details
                   <Badge variant="outline" className="ml-auto">
@@ -138,71 +138,63 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                 </DialogTitle>
               </DialogHeader>
               
-              <div className="space-y-6 pb-4">
-                {/* Transaction Summary */}
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+              <div className="flex-1 flex flex-col space-y-4 overflow-hidden">
+                {/* Transaction Summary - Compact */}
+                <div className="flex-shrink-0 flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-full bg-primary/10">
+                    <div className="p-2 rounded-full bg-primary/10">
                       {getTransactionType(selectedTransaction) === 'received' ? (
-                        <ArrowLeft className="w-5 h-5 text-green-600" />
+                        <ArrowLeft className="w-4 h-4 text-green-600" />
                       ) : (
-                        <ArrowRight className="w-5 h-5 text-red-600" />
+                        <ArrowRight className="w-4 h-4 text-red-600" />
                       )}
                     </div>
                     <div>
-                      <h3 className="font-semibold">
+                      <h3 className="font-semibold text-sm">
                         {getTransactionType(selectedTransaction) === 'received' ? 'Received from' : 'Sent to'}
                       </h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         {selectedTransaction.counterpartEmail}
                       </p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={cn("text-2xl font-mono font-bold", getAmountColor(getTransactionType(selectedTransaction)))}>
+                    <p className={cn("text-lg font-mono font-bold", getAmountColor(getTransactionType(selectedTransaction)))}>
                       {getAmountPrefix(getTransactionType(selectedTransaction))}{selectedTransaction.amount.toLocaleString()} ⭐
                     </p>
                   </div>
                 </div>
 
-                <Separator />
-
-                {/* Transaction Details */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
+                {/* Large Description Area - Takes up most space */}
+                <div className="flex-1 flex flex-col min-h-0">
+                  <div className="flex items-center gap-2 mb-2 flex-shrink-0">
                     <MessageSquare className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Description</span>
                   </div>
-                  <div className="bg-muted/20 p-3 rounded-md max-h-32 overflow-y-auto">
-                    <p className="text-sm break-words whitespace-pre-wrap leading-relaxed">{selectedTransaction.description}</p>
+                  <div className="flex-1 bg-muted/20 p-4 rounded-md overflow-y-auto min-h-0">
+                    <p className="text-base break-words whitespace-pre-wrap leading-relaxed">{selectedTransaction.description}</p>
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Transaction Date</span>
-                  </div>
-                  <div className="bg-muted/20 p-3 rounded-md">
-                    <p className="text-sm">
-                      {format(new Date(selectedTransaction.createdAt), 'EEEE, MMMM do, yyyy')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(selectedTransaction.createdAt), 'h:mm:ss a')}
+                {/* Compact Footer Info */}
+                <div className="flex-shrink-0 grid grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Calendar className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">Date</span>
+                    </div>
+                    <p className="text-xs">
+                      {format(new Date(selectedTransaction.createdAt), 'MMM d, yyyy h:mm a')}
                     </p>
                   </div>
-                </div>
-
-                {/* Transaction ID */}
-                <div className="space-y-2">
-                  <span className="text-xs font-medium text-muted-foreground">Transaction ID</span>
-                  <div className="bg-muted/20 p-2 rounded-md">
-                    <p className="text-xs font-mono break-all">{selectedTransaction.id}</p>
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground">Transaction ID</span>
+                    <p className="text-xs font-mono break-all">{selectedTransaction.id.slice(0, 16)}...</p>
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button onClick={() => setSelectedTransaction(null)} variant="outline">
+                <div className="flex justify-end flex-shrink-0 pt-2">
+                  <Button onClick={() => setSelectedTransaction(null)} variant="outline" size="sm">
                     Close
                   </Button>
                 </div>
