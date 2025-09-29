@@ -62,6 +62,13 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
+    const emailLower = req.body.email.toLowerCase();
+    
+    // Only allow @astranova.org emails (case-insensitive)
+    if (!emailLower.endsWith('@astranova.org')) {
+      return res.status(400).send("Only @astranova.org email addresses are allowed");
+    }
+
     const existingUser = await storage.getUserByEmail(req.body.email);
     if (existingUser) {
       return res.status(400).send("Email already exists");
@@ -69,9 +76,8 @@ export function setupAuth(app: Express) {
 
     // Special handling for admin users (case-insensitive)
     const adminEmails = ['siddiq.a@astranova.org', 'cosette@astranova.org'];
-    const emailLower = req.body.email.toLowerCase();
     const isAdmin = adminEmails.includes(emailLower);
-    const balance = isAdmin ? 15000 : 1000;
+    const balance = isAdmin ? 30000 : 2000;
 
     const user = await storage.createUser({
       ...req.body,
