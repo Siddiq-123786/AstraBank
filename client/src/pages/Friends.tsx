@@ -31,6 +31,11 @@ export default function Friends() {
     queryKey: ['/api/friends'],
   });
 
+  // Fetch recommended users
+  const { data: recommendedUsers = [] } = useQuery<Pick<Friend, 'id' | 'email' | 'balance'>[]>({
+    queryKey: ['/api/friends/recommended'],
+  });
+
   const acceptFriendMutation = useMutation({
     mutationFn: async (friendId: string) => {
       const res = await apiRequest('POST', `/api/friends/${friendId}/accept`, {});
@@ -73,6 +78,28 @@ export default function Friends() {
     }
   });
 
+  const sendFriendRequestMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest('POST', '/api/friends/add', { email });
+      return res.json();
+    },
+    onSuccess: (_, email) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/friends'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/friends/recommended'] });
+      toast({
+        title: "Friend request sent!",
+        description: `Sent a friend request to ${email}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send friend request",
+        description: error.message || "Could not send friend request",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleAcceptFriend = (friendId: string) => {
     acceptFriendMutation.mutate(friendId);
   };
@@ -84,6 +111,10 @@ export default function Friends() {
   const handleSendMoney = (friendId: string) => {
     setSelectedFriendId(friendId);
     setSendMoneyModalOpen(true);
+  };
+
+  const handleSendFriendRequest = (email: string) => {
+    sendFriendRequestMutation.mutate(email);
   };
 
   const getUserInitials = (email: string) => {
@@ -168,6 +199,55 @@ export default function Friends() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recommended Classmates */}
+      {recommendedUsers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Recommended Classmates
+              <Badge variant="secondary">{recommendedUsers.length}</Badge>
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Connect with your classmates from Astra Nova
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recommendedUsers.map((user) => (
+                <div 
+                  key={user.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover-elevate"
+                  data-testid={`recommended-user-${user.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback>{getUserInitials(user.email)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h4 className="font-medium">{getUsername(user.email)}</h4>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.balance.toLocaleString()} ⭐
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleSendFriendRequest(user.email)}
+                    disabled={sendFriendRequestMutation.isPending}
+                    data-testid={`button-add-recommended-${user.id}`}
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Add
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Incoming Friend Requests */}
       {pendingIncoming.length > 0 && (

@@ -133,6 +133,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/friends/recommended", requireAuth, async (req, res) => {
+    try {
+      const recommendations = await storage.getRecommendedUsers(req.user!.id);
+      res.json(recommendations);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch recommended users" });
+    }
+  });
+
   // Money transfer routes
   app.post("/api/send-money", requireAuth, async (req, res) => {
     try {

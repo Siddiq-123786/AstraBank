@@ -23,6 +23,7 @@ export interface IStorage {
   getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
   updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean>;
   getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]>;
+  getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'balance'>[]>;
   // Money transfer functionality
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
   getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string })[]>;
@@ -209,6 +210,48 @@ export class DatabaseStorage implements IStorage {
       );
 
     return result;
+  }
+
+  async getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'balance'>[]> {
+    // Get all users except:
+    // 1. The current user
+    // 2. Users who are already friends (any status)
+    const existingFriendIds = await db
+      .select({ id: users.id })
+      .from(friendships)
+      .innerJoin(
+        users,
+        or(
+          and(eq(friendships.userId, userId), eq(users.id, friendships.friendId)),
+          and(eq(friendships.friendId, userId), eq(users.id, friendships.userId))
+        )
+      )
+      .where(
+        or(
+          eq(friendships.userId, userId),
+          eq(friendships.friendId, userId)
+        )
+      );
+
+    const friendIds = existingFriendIds.map(f => f.id);
+    
+    const recommendations = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        balance: users.balance
+      })
+      .from(users)
+      .where(
+        and(
+          sql`${users.id} != ${userId}`,
+          friendIds.length > 0 ? sql`${users.id} NOT IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})` : sql`true`,
+          eq(users.isBanned, false)
+        )
+      )
+      .limit(10);
+
+    return recommendations;
   }
 
   async sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }> {
