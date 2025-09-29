@@ -81,11 +81,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async makeAdmin(userId: string): Promise<void> {
-    await db.update(users).set({ isAdmin: true }).where(eq(users.id, userId));
+    await db.update(users).set({ 
+      isAdmin: true,
+      balance: 30000 
+    }).where(eq(users.id, userId));
   }
 
   async removeAdmin(userId: string): Promise<void> {
-    await db.update(users).set({ isAdmin: false }).where(eq(users.id, userId));
+    // Don't change balance for founder, but set regular balance for others
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (user?.isFounder) {
+      // Founder keeps their balance when demoted from admin
+      await db.update(users).set({ isAdmin: false }).where(eq(users.id, userId));
+    } else {
+      // Regular users get standard balance when losing admin status
+      await db.update(users).set({ 
+        isAdmin: false,
+        balance: 2000 
+      }).where(eq(users.id, userId));
+    }
   }
 
   async getAllUsers(): Promise<User[]> {
