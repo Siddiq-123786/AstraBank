@@ -21,10 +21,10 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   // Friends functionality
   addFriend(userId: string, friendEmail: string): Promise<void>;
-  getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
+  getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance' | 'isAdmin'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
   updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean>;
-  getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]>;
-  getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email'>[]>;
+  getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance' | 'isAdmin'> & { friendshipId: string })[]>;
+  getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'isAdmin'>[]>;
   // Money transfer functionality
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
   getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string; counterpartIsAdmin: boolean })[]>;
@@ -186,12 +186,13 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipStatus: string; requestedByCurrent: boolean })[]> {
+  async getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance' | 'isAdmin'> & { friendshipStatus: string; requestedByCurrent: boolean })[]> {
     const result = await db
       .select({
         id: users.id,
         email: users.email,
         balance: users.balance,
+        isAdmin: users.isAdmin,
         friendshipStatus: friendships.status,
         friendshipUserId: friendships.userId,
         friendshipFriendId: friendships.friendId
@@ -215,6 +216,7 @@ export class DatabaseStorage implements IStorage {
       id: row.id,
       email: row.email,
       balance: row.balance,
+      isAdmin: row.isAdmin,
       friendshipStatus: row.friendshipStatus,
       requestedByCurrent: row.friendshipUserId === userId
     }));
@@ -236,12 +238,13 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]> {
+  async getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance' | 'isAdmin'> & { friendshipId: string })[]> {
     const result = await db
       .select({
         id: users.id,
         email: users.email,
         balance: users.balance,
+        isAdmin: users.isAdmin,
         friendshipId: friendships.id
       })
       .from(friendships)
@@ -256,7 +259,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email'>[]> {
+  async getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'isAdmin'>[]> {
     // Get all users except:
     // 1. The current user
     // 2. Users who are already friends (any status)
@@ -282,7 +285,8 @@ export class DatabaseStorage implements IStorage {
     const recommendations = await db
       .select({
         id: users.id,
-        email: users.email
+        email: users.email,
+        isAdmin: users.isAdmin
       })
       .from(users)
       .where(

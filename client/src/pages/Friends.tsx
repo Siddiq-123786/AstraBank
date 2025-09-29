@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users, UserPlus, UserCheck, UserX, Send } from "lucide-react";
+import { Users, UserPlus, UserCheck, UserX, Send, Crown } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import AddFriendModal from "@/components/AddFriendModal";
@@ -15,6 +15,7 @@ interface Friend {
   id: string;
   email: string;
   balance: number;
+  isAdmin: boolean;
   friendshipStatus: string;
   requestedByCurrent: boolean;
 }
@@ -32,7 +33,7 @@ export default function Friends() {
   });
 
   // Fetch recommended users
-  const { data: recommendedUsers = [], isLoading: isLoadingRecommended, error: recommendedError } = useQuery<Pick<Friend, 'id' | 'email'>[]>({
+  const { data: recommendedUsers = [], isLoading: isLoadingRecommended, error: recommendedError } = useQuery<Pick<Friend, 'id' | 'email' | 'isAdmin'>[]>({
     queryKey: ['/api/friends/recommended'],
   });
 
@@ -237,9 +238,16 @@ export default function Friends() {
                     data-testid={`recommended-user-${user.id}`}
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback>{getUserInitials(user.email)}</AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <Avatar className="w-10 h-10">
+                          <AvatarFallback>{getUserInitials(user.email)}</AvatarFallback>
+                        </Avatar>
+                        {user.isAdmin && (
+                          <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5" data-testid={`admin-crown-recommended-${user.id}`}>
+                            <Crown className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
+                      </div>
                       <div>
                         <h4 className="font-medium">{getUsername(user.email)}</h4>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -281,9 +289,16 @@ export default function Friends() {
                   data-testid={`incoming-request-${friend.id}`}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>{getUserInitials(friend.email)}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>{getUserInitials(friend.email)}</AvatarFallback>
+                      </Avatar>
+                      {friend.isAdmin && (
+                        <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5" data-testid={`admin-crown-incoming-${friend.id}`}>
+                          <Crown className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <h4 className="font-medium">{getUsername(friend.email)}</h4>
                       <p className="text-sm text-muted-foreground">{friend.email}</p>
@@ -350,9 +365,16 @@ export default function Friends() {
                   data-testid={`friend-${friend.id}`}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>{getUserInitials(friend.email)}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>{getUserInitials(friend.email)}</AvatarFallback>
+                      </Avatar>
+                      {friend.isAdmin && (
+                        <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5" data-testid={`admin-crown-friend-${friend.id}`}>
+                          <Crown className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <h4 className="font-medium">{getUsername(friend.email)}</h4>
                       <p className="text-sm text-muted-foreground">{friend.email}</p>
@@ -395,9 +417,16 @@ export default function Friends() {
                   data-testid={`outgoing-request-${friend.id}`}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>{getUserInitials(friend.email)}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>{getUserInitials(friend.email)}</AvatarFallback>
+                      </Avatar>
+                      {friend.isAdmin && (
+                        <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5" data-testid={`admin-crown-outgoing-${friend.id}`}>
+                          <Crown className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <h4 className="font-medium">{getUsername(friend.email)}</h4>
                       <p className="text-sm text-muted-foreground">{friend.email}</p>
