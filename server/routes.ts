@@ -222,6 +222,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/companies", requireAuth, async (req, res) => {
     try {
       const validatedData = createCompanySchema.parse(req.body);
+      
+      // Additional validation: ensure teammates are distinct from creator
+      const teamEmailsList = validatedData.teamEmails.split(',').map(email => email.trim().toLowerCase()).filter(email => email.length > 0);
+      const uniqueTeamEmails = Array.from(new Set(teamEmailsList)).filter(email => email !== req.user!.email.toLowerCase());
+      
+      if (uniqueTeamEmails.length < 1) {
+        return res.status(400).json({ error: "At least one teammate other than you is required" });
+      }
+      
       const company = await storage.createCompany({
         ...validatedData,
         createdById: req.user!.id,

@@ -33,6 +33,7 @@ export const companies = pgTable("companies", {
   category: text("category").notNull(),
   fundingGoal: integer("funding_goal").notNull(),
   currentFunding: integer("current_funding").notNull().default(0),
+  teamEmails: text("team_emails").notNull(), // Comma-separated list of team member emails
   foundedAt: timestamp("founded_at").notNull().default(sql`now()`),
   createdById: varchar("created_by_id").notNull().references(() => users.id),
 });
@@ -73,6 +74,7 @@ export const insertCompanySchema = createInsertSchema(companies).pick({
   description: true,
   category: true,
   fundingGoal: true,
+  teamEmails: true,
   createdById: true,
 });
 
@@ -81,6 +83,23 @@ export const createCompanySchema = z.object({
   description: z.string().trim().min(10, "Description must be at least 10 characters").max(500),
   category: z.string().min(1, "Category is required"),
   fundingGoal: z.number().int().positive().min(1000).max(1000000), // 1K to 1M Astras
+  teamEmails: z.string().trim().refine(
+    (emails) => {
+      if (!emails) return false;
+      const emailList = emails.split(',').map(email => email.trim()).filter(email => email.length > 0);
+      // Must have at least 1 team member (plus creator makes 2 total)
+      return emailList.length >= 1;
+    },
+    { message: "At least one team member email is required (2 people total including you)" }
+  ).refine(
+    (emails) => {
+      const emailList = emails.split(',').map(email => email.trim()).filter(email => email.length > 0);
+      // Validate all emails are @astranova.org format
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@astranova\.org$/i;
+      return emailList.every(email => emailRegex.test(email));
+    },
+    { message: "All team member emails must be @astranova.org addresses" }
+  ),
 });
 
 export const investmentSchema = z.object({

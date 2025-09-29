@@ -21,6 +21,7 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
   const [fundingGoal, setFundingGoal] = useState('');
+  const [teamEmails, setTeamEmails] = useState('');
   const { toast } = useToast();
 
   const createCompanyMutation = useMutation({
@@ -40,6 +41,7 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
       setDescription('');
       setCategory('');
       setFundingGoal('');
+      setTeamEmails('');
       onOpenChange(false);
     },
     onError: (error: any) => {
@@ -52,12 +54,13 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
   });
 
   const handleCreate = () => {
-    if (name && description && category && fundingGoal) {
+    if (name && description && category && fundingGoal && teamEmails) {
       createCompanyMutation.mutate({
         name,
         description,
         category,
         fundingGoal: parseInt(fundingGoal),
+        teamEmails,
       });
     }
   };
@@ -131,15 +134,17 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="team-emails">Team Members (Gmail addresses)</Label>
+            <Label htmlFor="team-emails">Team Members (@astranova.org emails)</Label>
             <Textarea
               id="team-emails"
-              placeholder="friend1@astranova.edu, friend2@astranova.edu"
+              placeholder="friend1@astranova.org, friend2@astranova.org"
+              value={teamEmails}
+              onChange={(e) => setTeamEmails(e.target.value)}
               rows={2}
               data-testid="input-team-emails"
             />
             <p className="text-xs text-muted-foreground">
-              Separate multiple emails with commas
+              At least one team member required (minimum 2 people total including you)
             </p>
           </div>
 
@@ -149,7 +154,7 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
             </Button>
             <Button 
               onClick={handleCreate}
-              disabled={!name || !description || !category || !fundingGoal}
+              disabled={!name || !description || !category || !fundingGoal || !teamEmails}
               className="flex-1"
               data-testid="button-create-company"
             >

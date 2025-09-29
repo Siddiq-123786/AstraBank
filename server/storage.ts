@@ -29,7 +29,7 @@ export interface IStorage {
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
   getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string; counterpartIsAdmin: boolean })[]>;
   // Company functionality
-  createCompany(company: { name: string; description: string; category: string; fundingGoal: number; createdById: string }): Promise<Company>;
+  createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string }): Promise<Company>;
   getAllCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
   investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }>;
@@ -394,7 +394,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Company methods
-  async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; createdById: string }): Promise<Company> {
+  async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string }): Promise<Company> {
     const [newCompany] = await db
       .insert(companies)
       .values(company)
