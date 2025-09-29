@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, TrendingUp, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Send, TrendingUp, Plus, ArrowRight, ArrowLeft, Calendar, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +19,7 @@ interface TransactionHistoryProps {
 
 export default function TransactionHistory({ transactions, isLoading }: TransactionHistoryProps) {
   const { user } = useAuth();
+  const [selectedTransaction, setSelectedTransaction] = useState<ApiTransaction | null>(null);
   
   const getIcon = (transactionType: 'sent' | 'received') => {
     return <Send className="w-4 h-4" />;
@@ -87,7 +92,8 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
             return (
               <div 
                 key={transaction.id} 
-                className="flex items-center justify-between p-3 rounded-lg hover-elevate bg-muted/20"
+                className="flex items-center justify-between p-3 rounded-lg hover-elevate bg-muted/20 cursor-pointer transition-all"
+                onClick={() => setSelectedTransaction(transaction)}
                 data-testid={`transaction-${transaction.id}`}
               >
                 <div className="flex items-center gap-3">
@@ -117,6 +123,94 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
           })
         )}
       </CardContent>
+      
+      {/* Transaction Details Modal */}
+      <Dialog open={!!selectedTransaction} onOpenChange={() => setSelectedTransaction(null)}>
+        <DialogContent className="sm:max-w-lg">
+          {selectedTransaction && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  Transaction Details
+                  <Badge variant="outline" className="ml-auto">
+                    {getTransactionType(selectedTransaction)}
+                  </Badge>
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                {/* Transaction Summary */}
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-full bg-primary/10">
+                      {getTransactionType(selectedTransaction) === 'received' ? (
+                        <ArrowLeft className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <ArrowRight className="w-5 h-5 text-red-600" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">
+                        {getTransactionType(selectedTransaction) === 'received' ? 'Received from' : 'Sent to'}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedTransaction.counterpartEmail}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={cn("text-2xl font-mono font-bold", getAmountColor(getTransactionType(selectedTransaction)))}>
+                      {getAmountPrefix(getTransactionType(selectedTransaction))}{selectedTransaction.amount.toLocaleString()} ⭐
+                    </p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Transaction Details */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Description</span>
+                  </div>
+                  <div className="bg-muted/20 p-3 rounded-md">
+                    <p className="text-sm break-words">{selectedTransaction.description}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Transaction Date</span>
+                  </div>
+                  <div className="bg-muted/20 p-3 rounded-md">
+                    <p className="text-sm">
+                      {format(new Date(selectedTransaction.createdAt), 'EEEE, MMMM do, yyyy')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(selectedTransaction.createdAt), 'h:mm:ss a')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Transaction ID */}
+                <div className="space-y-2">
+                  <span className="text-xs font-medium text-muted-foreground">Transaction ID</span>
+                  <div className="bg-muted/20 p-2 rounded-md">
+                    <p className="text-xs font-mono break-all">{selectedTransaction.id}</p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={() => setSelectedTransaction(null)} variant="outline">
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

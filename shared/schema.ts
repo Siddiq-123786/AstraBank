@@ -64,7 +64,7 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
 export const sendMoneySchema = z.object({
   toUserId: z.string().uuid(),
   amount: z.number().int().positive().max(100000), // Max 100,000 Astras per transaction
-  description: z.string().trim().min(1, "Description is required").max(200),
+  description: z.string().trim().min(1, "Description is required").max(350),
 });
 
 // Company schemas

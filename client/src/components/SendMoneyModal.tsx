@@ -28,7 +28,7 @@ import { Send, Loader2 } from "lucide-react";
 
 const sendMoneySchema = z.object({
   amount: z.number().int().positive().max(100000, "Maximum 100,000 Astras per transaction"),
-  description: z.string().min(1, "Description is required").max(200, "Description must be 200 characters or less"),
+  description: z.string().min(1, "Description is required").max(350, "Description must be 350 characters or less"),
 });
 
 type SendMoneyForm = z.infer<typeof sendMoneySchema>;
