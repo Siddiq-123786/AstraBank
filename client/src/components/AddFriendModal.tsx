@@ -64,7 +64,7 @@ export default function AddFriendModal({ open, onOpenChange }: AddFriendModalPro
             <Input
               id="email"
               type="email"
-              placeholder="friend@astranova.edu"
+              placeholder="friend@astranova.org"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               data-testid="input-friend-email"
