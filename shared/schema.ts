@@ -107,6 +107,7 @@ export interface ApiTransaction {
   createdAt: string;
   transactionType: 'sent' | 'received';
   counterpartEmail: string;
+  counterpartIsAdmin: boolean;
 }
 export type User = typeof users.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;

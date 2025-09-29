@@ -27,7 +27,7 @@ export interface IStorage {
   getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email'>[]>;
   // Money transfer functionality
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
-  getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string })[]>;
+  getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string; counterpartIsAdmin: boolean })[]>;
   // Company functionality
   createCompany(company: { name: string; description: string; category: string; fundingGoal: number; createdById: string }): Promise<Company>;
   getAllCompanies(): Promise<Company[]>;
@@ -351,7 +351,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getTransactions(userId: string, limit: number = 50): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string })[]> {
+  async getTransactions(userId: string, limit: number = 50): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string; counterpartIsAdmin: boolean })[]> {
     // Get base transactions
     const baseTransactions = await db
       .select()
@@ -372,7 +372,7 @@ export class DatabaseStorage implements IStorage {
         const counterpartId = isFromUser ? transaction.toUserId : transaction.fromUserId;
         
         const counterpartUser = await db
-          .select({ email: users.email })
+          .select({ email: users.email, isAdmin: users.isAdmin })
           .from(users)
           .where(eq(users.id, counterpartId!))
           .limit(1);
@@ -380,7 +380,8 @@ export class DatabaseStorage implements IStorage {
         return {
           ...transaction,
           transactionType: isFromUser ? 'sent' as const : 'received' as const,
-          counterpartEmail: counterpartUser[0]?.email || 'Unknown'
+          counterpartEmail: counterpartUser[0]?.email || 'Unknown',
+          counterpartIsAdmin: counterpartUser[0]?.isAdmin || false
         };
       })
     );

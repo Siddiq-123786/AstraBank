@@ -89,11 +89,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      // Return basic user info (exclude sensitive admin fields for non-admins)
+      // Return user info including admin status for transparency
       const publicUsers = users.map(user => ({
         id: user.id,
         email: user.email,
         balance: user.balance,
+        isAdmin: user.isAdmin,
         createdAt: user.createdAt
       }));
       res.json(publicUsers);

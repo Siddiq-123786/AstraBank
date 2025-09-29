@@ -3,13 +3,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users as UsersIcon, Star, UserPlus } from "lucide-react";
+import { Users as UsersIcon, Star, UserPlus, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 type UserProfile = {
   id: string;
   email: string;
   balance: number;
+  isAdmin: boolean;
   createdAt: string;
 };
 
@@ -92,15 +93,29 @@ export default function Users() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-12 h-12">
-                      <AvatarFallback className="text-sm font-semibold">
-                        {getUserInitials(user.email)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="w-12 h-12">
+                        <AvatarFallback className="text-sm font-semibold">
+                          {getUserInitials(user.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {user.isAdmin && (
+                        <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-1" data-testid={`admin-crown-${user.id}`}>
+                          <Crown className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <div>
-                      <CardTitle className="text-lg" data-testid={`user-name-${user.id}`}>
-                        {getUsername(user.email)}
-                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg" data-testid={`user-name-${user.id}`}>
+                          {getUsername(user.email)}
+                        </CardTitle>
+                        {user.isAdmin && (
+                          <Badge variant="secondary" className="text-xs">
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground" data-testid={`user-email-${user.id}`}>
                         {user.email}
                       </p>

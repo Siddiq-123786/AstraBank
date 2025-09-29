@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Send, TrendingUp, Plus, ArrowRight, ArrowLeft, Calendar, MessageSquare } from "lucide-react";
+import { Send, TrendingUp, Plus, ArrowRight, ArrowLeft, Calendar, MessageSquare, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -101,9 +101,16 @@ export default function TransactionHistory({ transactions, isLoading }: Transact
                     {getIcon(transactionType)}
                   </div>
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8">
-                      <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
+                      </Avatar>
+                      {transaction.counterpartIsAdmin && (
+                        <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-0.5" data-testid={`admin-crown-transaction-${transaction.id}`}>
+                          <Crown className="w-2 h-2 text-white" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <p className="font-medium text-sm">{transaction.description}</p>
                       <p className="text-xs text-muted-foreground">{formattedDate}</p>
