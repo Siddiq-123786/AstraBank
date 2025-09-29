@@ -1,13 +1,10 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Users as UsersIcon, Star, UserPlus, MessageCircle } from "lucide-react";
+import { Users as UsersIcon, Star, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 
 type UserProfile = {
   id: string;
@@ -27,37 +24,10 @@ function getUsername(email: string): string {
 
 export default function Users() {
   const { user: currentUser } = useAuth();
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
   
   const { data: users = [], isLoading, error } = useQuery<UserProfile[]>({
     queryKey: ['/api/users'],
   });
-
-  const sendMessageMutation = useMutation({
-    mutationFn: async ({ toUserId, content }: { toUserId: string; content: string }) => {
-      await apiRequest('POST', '/api/chat/send', { toUserId, content });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/chat/conversations'] });
-      toast({ title: "Chat started! Redirecting to chat..." });
-      setLocation('/chat');
-    },
-    onError: (error: any) => {
-      toast({ 
-        title: "Failed to start chat", 
-        description: error.message || "Please try again",
-        variant: "destructive" 
-      });
-    }
-  });
-
-  const handleStartChat = (userId: string) => {
-    sendMessageMutation.mutate({
-      toUserId: userId,
-      content: "Hi there!"
-    });
-  };
 
   if (isLoading) {
     return (
@@ -160,15 +130,6 @@ export default function Users() {
                     >
                       <UserPlus className="w-4 h-4 mr-1" />
                       Add Friend
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleStartChat(user.id)}
-                      disabled={sendMessageMutation.isPending}
-                      data-testid={`button-chat-${user.id}`}
-                    >
-                      <MessageCircle className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
