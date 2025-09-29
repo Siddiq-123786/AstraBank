@@ -23,7 +23,7 @@ export interface IStorage {
   getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
   updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean>;
   getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance'> & { friendshipId: string })[]>;
-  getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'balance'>[]>;
+  getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email'>[]>;
   // Money transfer functionality
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
   getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string })[]>;
@@ -212,7 +212,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'balance'>[]> {
+  async getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email'>[]> {
     // Get all users except:
     // 1. The current user
     // 2. Users who are already friends (any status)
@@ -238,8 +238,7 @@ export class DatabaseStorage implements IStorage {
     const recommendations = await db
       .select({
         id: users.id,
-        email: users.email,
-        balance: users.balance
+        email: users.email
       })
       .from(users)
       .where(
@@ -249,7 +248,8 @@ export class DatabaseStorage implements IStorage {
           eq(users.isBanned, false)
         )
       )
-      .limit(10);
+      .orderBy(users.email)
+      .limit(20);
 
     return recommendations;
   }

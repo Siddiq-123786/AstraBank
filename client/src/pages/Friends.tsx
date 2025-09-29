@@ -32,7 +32,7 @@ export default function Friends() {
   });
 
   // Fetch recommended users
-  const { data: recommendedUsers = [] } = useQuery<Pick<Friend, 'id' | 'email' | 'balance'>[]>({
+  const { data: recommendedUsers = [], isLoading: isLoadingRecommended, error: recommendedError } = useQuery<Pick<Friend, 'id' | 'email'>[]>({
     queryKey: ['/api/friends/recommended'],
   });
 
@@ -201,50 +201,63 @@ export default function Friends() {
       </div>
 
       {/* Recommended Classmates */}
-      {recommendedUsers.length > 0 && (
+      {(recommendedUsers.length > 0 || isLoadingRecommended || recommendedError) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
               Recommended Classmates
-              <Badge variant="secondary">{recommendedUsers.length}</Badge>
+              {recommendedUsers.length > 0 && (
+                <Badge variant="secondary">{recommendedUsers.length}</Badge>
+              )}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               Connect with your classmates from Astra Nova
             </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {recommendedUsers.map((user) => (
-                <div 
-                  key={user.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover-elevate"
-                  data-testid={`recommended-user-${user.id}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>{getUserInitials(user.email)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-medium">{getUsername(user.email)}</h4>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {user.balance.toLocaleString()} ⭐
-                      </p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleSendFriendRequest(user.email)}
-                    disabled={sendFriendRequestMutation.isPending}
-                    data-testid={`button-add-recommended-${user.id}`}
+            {isLoadingRecommended ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">Loading recommendations...</div>
+              </div>
+            ) : recommendedError ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">Unable to load recommendations</div>
+              </div>
+            ) : recommendedUsers.length === 0 ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-muted-foreground">No new classmates to recommend</div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {recommendedUsers.map((user) => (
+                  <div 
+                    key={user.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover-elevate"
+                    data-testid={`recommended-user-${user.id}`}
                   >
-                    <UserPlus className="w-4 h-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>{getUserInitials(user.email)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h4 className="font-medium">{getUsername(user.email)}</h4>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleSendFriendRequest(user.email)}
+                      disabled={sendFriendRequestMutation.isPending}
+                      data-testid={`button-add-recommended-${user.id}`}
+                    >
+                      <UserPlus className="w-4 h-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
