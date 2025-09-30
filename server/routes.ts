@@ -289,6 +289,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/companies/:id", requireAuth, async (req, res) => {
+    try {
+      // Check if user is admin
+      if (!req.user!.isAdmin) {
+        return res.status(403).json({ error: "Only admins can delete companies" });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteCompany(id);
+      
+      if (success) {
+        res.json({ success: true, message: "Company deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Company not found" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: "Failed to delete company" });
+    }
+  });
+
 
   const httpServer = createServer(app);
 
