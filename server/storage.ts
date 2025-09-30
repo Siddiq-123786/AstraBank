@@ -700,13 +700,13 @@ export class DatabaseStorage implements IStorage {
           return { success: false, error: "Insufficient company treasury balance" };
         }
 
-        // Calculate admin share (1.5% split among all admins)
-        const adminShare = Math.floor(grossAmount * 0.015);
-        const distributableAmount = grossAmount - adminShare;
-
         // Get all active admins
         const admins = await tx.select().from(users).where(and(eq(users.isAdmin, true), eq(users.isBanned, false)));
-        const adminSharePerAdmin = Math.floor(adminShare / admins.length);
+        
+        // Calculate admin share (1.5% per admin)
+        const adminSharePerAdmin = Math.floor(grossAmount * 0.015);
+        const adminShare = adminSharePerAdmin * admins.length;
+        const distributableAmount = grossAmount - adminShare;
 
         // Create earnings record
         const [earningsRecord] = await tx.insert(companyEarnings).values({

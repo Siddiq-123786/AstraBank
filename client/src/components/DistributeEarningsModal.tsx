@@ -91,7 +91,7 @@ export default function DistributeEarningsModal({
               data-testid="input-earnings-amount"
             />
             <p className="text-xs text-muted-foreground">
-              1.5% admin fee will be automatically deducted and distributed equally among all active admins. Enter whole numbers only.
+              Each admin receives 1.5% (total admin fee: 4.5% with 3 admins). Enter whole numbers only.
             </p>
           </div>
 
