@@ -297,12 +297,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { id } = req.params;
-      const success = await storage.deleteCompany(id);
+      const result = await storage.deleteCompany(id);
       
-      if (success) {
-        res.json({ success: true, message: "Company deleted successfully" });
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: "Company deleted successfully",
+          refundedInvestors: result.refundedInvestors,
+          totalRefunded: result.totalRefunded
+        });
       } else {
-        res.status(404).json({ error: "Company not found" });
+        res.status(400).json({ error: result.error });
       }
     } catch (error: any) {
       res.status(500).json({ error: "Failed to delete company" });
