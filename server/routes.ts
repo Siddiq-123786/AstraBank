@@ -365,6 +365,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's payout history across all companies
+  app.get("/api/users/:id/payouts", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      // Users can only view their own payouts unless they're admin
+      if (id !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const payouts = await storage.getUserPayouts(id);
+      res.json(payouts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user payouts" });
+    }
+  });
+
   app.delete("/api/companies/:id", requireAuth, async (req, res) => {
     try {
       // Check if user is admin

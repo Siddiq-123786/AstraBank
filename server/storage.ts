@@ -46,6 +46,7 @@ export interface IStorage {
   getCompanyEquity(companyId: string): Promise<(CompanyEquityAllocation & { userEmail: string })[]>;
   getUserEquity(userId: string): Promise<(CompanyEquityAllocation & { companyName: string })[]>;
   getCompanyPayouts(companyId: string): Promise<(CompanyPayout & { userEmail: string | null; earningsDate: Date })[]>;
+  getUserPayouts(userId: string): Promise<(CompanyPayout & { companyName: string; earningsDate: Date })[]>;
   sessionStore: Store;
 }
 
@@ -860,6 +861,31 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(users, eq(companyPayouts.userId, users.id))
       .innerJoin(companyEarnings, eq(companyPayouts.earningsId, companyEarnings.id))
       .where(eq(companyPayouts.companyId, companyId))
+      .orderBy(desc(companyPayouts.createdAt));
+    
+    return payouts;
+  }
+
+  async getUserPayouts(userId: string): Promise<(CompanyPayout & { companyName: string; earningsDate: Date })[]> {
+    const payouts = await db
+      .select({
+        id: companyPayouts.id,
+        earningsId: companyPayouts.earningsId,
+        companyId: companyPayouts.companyId,
+        userId: companyPayouts.userId,
+        amount: companyPayouts.amount,
+        payoutType: companyPayouts.payoutType,
+        createdAt: companyPayouts.createdAt,
+        companyName: companies.name,
+        earningsDate: companyEarnings.createdAt,
+      })
+      .from(companyPayouts)
+      .innerJoin(companies, eq(companyPayouts.companyId, companies.id))
+      .innerJoin(companyEarnings, eq(companyPayouts.earningsId, companyEarnings.id))
+      .where(and(
+        eq(companyPayouts.userId, userId),
+        eq(companies.isDeleted, false)
+      ))
       .orderBy(desc(companyPayouts.createdAt));
     
     return payouts;

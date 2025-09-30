@@ -18,6 +18,7 @@ import Friends from "@/pages/Friends";
 import Users from "@/pages/Users";
 import Directory from "@/pages/Directory";
 import Companies from "@/pages/Companies";
+import Investments from "@/pages/Investments";
 
 function Router() {
   return (
@@ -26,7 +27,7 @@ function Router() {
       <ProtectedRoute path="/users" component={Users} />
       <ProtectedRoute path="/directory" component={Directory} />
       <ProtectedRoute path="/friends" component={Friends} />
-      <ProtectedRoute path="/investments" component={() => <div className="p-8"><h1 className="text-2xl font-bold">Investments Page</h1><p>Coming soon...</p></div>} />
+      <ProtectedRoute path="/investments" component={Investments} />
       <ProtectedRoute path="/companies" component={Companies} />
       <ProtectedRoute path="/history" component={History} />
       <ProtectedRoute path="/admin" component={() => <AdminPanel />} />
