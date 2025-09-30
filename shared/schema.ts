@@ -36,6 +36,7 @@ export const companies = pgTable("companies", {
   teamEmails: text("team_emails").notNull(), // Comma-separated list of team member emails
   foundedAt: timestamp("founded_at").notNull().default(sql`now()`),
   createdById: varchar("created_by_id").notNull().references(() => users.id),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 // Friendships table
