@@ -32,7 +32,7 @@ export interface IStorage {
   createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string }): Promise<Company>;
   getAllCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
-  deleteCompany(id: string): Promise<boolean>;
+  deleteCompany(id: string): Promise<{ success: boolean; refundedInvestors: number; totalRefunded: number; error?: string }>;
   investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }>;
   sessionStore: Store;
 }
@@ -420,13 +420,89 @@ export class DatabaseStorage implements IStorage {
     return company || undefined;
   }
 
-  async deleteCompany(id: string): Promise<boolean> {
-    const result = await db
-      .update(companies)
-      .set({ isDeleted: true })
-      .where(eq(companies.id, id))
-      .returning();
-    return result.length > 0;
+  async deleteCompany(id: string): Promise<{ success: boolean; refundedInvestors: number; totalRefunded: number; error?: string }> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Get the company first
+        const [company] = await tx
+          .select()
+          .from(companies)
+          .where(eq(companies.id, id));
+
+        if (!company) {
+          return { success: false, refundedInvestors: 0, totalRefunded: 0, error: "Company not found" };
+        }
+
+        // Find all investment transactions for this company
+        const investments = await tx
+          .select()
+          .from(transactions)
+          .where(and(
+            eq(transactions.companyId, id),
+            eq(transactions.type, 'invest')
+          ));
+
+        let totalRefunded = 0;
+        const investorRefunds = new Map<string, number>();
+
+        // Group investments by investor
+        for (const investment of investments) {
+          const currentAmount = investorRefunds.get(investment.fromUserId!) || 0;
+          investorRefunds.set(investment.fromUserId!, currentAmount + investment.amount);
+        }
+
+        // Refund each investor
+        for (const [investorId, amount] of Array.from(investorRefunds.entries())) {
+          // Add funds back to investor
+          await tx
+            .update(users)
+            .set({ balance: sql`${users.balance} + ${amount}` })
+            .where(eq(users.id, investorId));
+
+          // Create refund transaction record
+          await tx
+            .insert(transactions)
+            .values({
+              fromUserId: company.createdById,
+              toUserId: investorId,
+              amount: amount,
+              type: 'refund',
+              description: `Refund for deleted company: ${company.name}`,
+              companyId: id,
+            });
+
+          totalRefunded += amount;
+        }
+
+        // Deduct the total refunded amount from company creator's balance
+        if (totalRefunded > 0) {
+          await tx
+            .update(users)
+            .set({ balance: sql`${users.balance} - ${totalRefunded}` })
+            .where(eq(users.id, company.createdById));
+        }
+
+        // Mark company as deleted
+        await tx
+          .update(companies)
+          .set({ isDeleted: true })
+          .where(eq(companies.id, id));
+
+        return {
+          success: true,
+          refundedInvestors: investorRefunds.size,
+          totalRefunded: totalRefunded,
+        };
+      });
+    } catch (error: any) {
+      console.error('Delete company error:', error);
+      return {
+        success: false,
+        refundedInvestors: 0,
+        totalRefunded: 0,
+        error: error.message || "Failed to delete company"
+      };
+    }
   }
 
   async investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }> {
@@ -484,6 +560,7 @@ export class DatabaseStorage implements IStorage {
             amount,
             type: 'invest',
             description: `Investment in ${company.name}`,
+            companyId: companyId,
           });
       });
 
