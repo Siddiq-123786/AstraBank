@@ -20,8 +20,9 @@ export const transactions = pgTable("transactions", {
   fromUserId: varchar("from_user_id").references(() => users.id),
   toUserId: varchar("to_user_id").references(() => users.id),
   amount: integer("amount").notNull(),
-  type: text("type").notNull(), // 'send', 'receive', 'invest', 'earn', 'admin_adjust'
+  type: text("type").notNull(), // 'send', 'receive', 'invest', 'earn', 'admin_adjust', 'refund'
   description: text("description").notNull(),
+  companyId: varchar("company_id").references(() => companies.id),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
