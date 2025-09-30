@@ -443,6 +443,7 @@ export class DatabaseStorage implements IStorage {
           ));
 
         let totalRefunded = 0;
+        let totalRefundedToOthers = 0;
         const investorRefunds = new Map<string, number>();
 
         // Group investments by investor
@@ -472,13 +473,19 @@ export class DatabaseStorage implements IStorage {
             });
 
           totalRefunded += amount;
+          
+          // Track refunds to other investors (not the creator themselves)
+          if (investorId !== company.createdById) {
+            totalRefundedToOthers += amount;
+          }
         }
 
-        // Deduct the total refunded amount from company creator's balance
-        if (totalRefunded > 0) {
+        // Deduct only the amount refunded to OTHER investors from creator's balance
+        // (If creator invested in their own company, they already got their refund above)
+        if (totalRefundedToOthers > 0) {
           await tx
             .update(users)
-            .set({ balance: sql`${users.balance} - ${totalRefunded}` })
+            .set({ balance: sql`${users.balance} - ${totalRefundedToOthers}` })
             .where(eq(users.id, company.createdById));
         }
 
