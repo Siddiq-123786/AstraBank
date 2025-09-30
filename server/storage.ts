@@ -414,9 +414,9 @@ export class DatabaseStorage implements IStorage {
   // Company methods
   async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string; investorPoolBps: number; equityAllocations: Array<{ email: string; basisPoints: number }> }): Promise<Company> {
     return await db.transaction(async (tx) => {
-      // Validate total equity doesn't exceed 100%
+      // Validate total equity doesn't exceed 100% (with ±1 bps tolerance for rounding)
       const totalFounderBps = company.equityAllocations.reduce((sum, alloc) => sum + alloc.basisPoints, 0);
-      if (totalFounderBps + company.investorPoolBps > 10000) {
+      if (totalFounderBps + company.investorPoolBps > 10001) {
         throw new ValidationError("Total equity (founder allocations + investor pool) cannot exceed 100%");
       }
 

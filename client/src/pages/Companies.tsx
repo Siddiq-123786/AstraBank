@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building, TrendingUp, Users, Trash2 } from "lucide-react";
+import { Building, TrendingUp, Users, Trash2, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import DistributeEarningsModal from "@/components/DistributeEarningsModal";
 
 type Company = {
   id: string;
@@ -36,6 +37,8 @@ export default function Companies() {
   const { toast } = useToast();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [earningsDialogOpen, setEarningsDialogOpen] = useState(false);
+  const [companyForEarnings, setCompanyForEarnings] = useState<Company | null>(null);
 
   const { data: companies = [], isLoading, error } = useQuery<Company[]>({
     queryKey: ['/api/companies'],
@@ -80,6 +83,11 @@ export default function Companies() {
     if (companyToDelete) {
       deleteCompanyMutation.mutate(companyToDelete.id);
     }
+  };
+
+  const handleEarningsClick = (company: Company) => {
+    setCompanyForEarnings(company);
+    setEarningsDialogOpen(true);
   };
 
   if (isLoading) {
@@ -201,21 +209,36 @@ export default function Companies() {
                   Founded {new Date(company.foundedAt).toLocaleDateString()}
                 </div>
 
-                {getFundingPercentage(company) < 100 && (
-                  <Button 
-                    size="sm" 
-                    className="w-full"
-                    data-testid={`button-invest-${company.id}`}
-                  >
-                    <TrendingUp className="w-4 h-4 mr-1" />
-                    Invest
-                  </Button>
-                )}
-                {getFundingPercentage(company) >= 100 && (
-                  <Badge variant="default" className="w-full justify-center">
-                    Fully Funded!
-                  </Badge>
-                )}
+                <div className="space-y-2">
+                  {getFundingPercentage(company) < 100 && (
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      data-testid={`button-invest-${company.id}`}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      Invest
+                    </Button>
+                  )}
+                  {getFundingPercentage(company) >= 100 && (
+                    <Badge variant="default" className="w-full justify-center">
+                      Fully Funded!
+                    </Badge>
+                  )}
+
+                  {user?.isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => handleEarningsClick(company)}
+                      data-testid={`button-earnings-${company.id}`}
+                    >
+                      <DollarSign className="w-4 h-4 mr-1" />
+                      Distribute Earnings
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -244,6 +267,15 @@ export default function Companies() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {companyForEarnings && (
+        <DistributeEarningsModal
+          open={earningsDialogOpen}
+          onOpenChange={setEarningsDialogOpen}
+          companyId={companyForEarnings.id}
+          companyName={companyForEarnings.name}
+        />
+      )}
     </div>
   );
 }

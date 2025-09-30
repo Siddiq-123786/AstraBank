@@ -161,7 +161,7 @@ export const createCompanySchema = z.object({
 }).refine(
   (data) => {
     const totalFounderBps = data.equityAllocations.reduce((sum, alloc) => sum + alloc.basisPoints, 0);
-    return totalFounderBps + data.investorPoolBps <= 10000;
+    return totalFounderBps + data.investorPoolBps <= 10001;
   },
   { message: "Total equity (founder allocations + investor pool) cannot exceed 100%" }
 );
