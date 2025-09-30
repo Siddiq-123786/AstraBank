@@ -45,11 +45,18 @@ export default function Companies() {
       const res = await apiRequest('DELETE', `/api/companies/${companyId}`, {});
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: { refundedInvestors: number; totalRefunded: number }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      
+      let description = "The company has been removed successfully";
+      if (data.refundedInvestors > 0) {
+        description = `Refunded ${data.totalRefunded.toLocaleString()} Astras to ${data.refundedInvestors} investor${data.refundedInvestors > 1 ? 's' : ''}`;
+      }
+      
       toast({
         title: "Company deleted",
-        description: "The company has been removed successfully",
+        description: description,
       });
       setDeleteDialogOpen(false);
       setCompanyToDelete(null);
@@ -215,7 +222,9 @@ export default function Companies() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Company</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{companyToDelete?.name}</strong>? This action cannot be undone and the company will no longer be visible to users.
+              Are you sure you want to delete <strong>{companyToDelete?.name}</strong>? 
+              <br /><br />
+              All investors will be automatically refunded their full investment amounts. This action cannot be undone and the company will no longer be visible to users.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -225,7 +234,7 @@ export default function Companies() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleteCompanyMutation.isPending}
             >
-              {deleteCompanyMutation.isPending ? "Deleting..." : "Delete"}
+              {deleteCompanyMutation.isPending ? "Deleting..." : "Delete & Refund"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
