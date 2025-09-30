@@ -30,7 +30,7 @@ export interface IStorage {
   getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string; counterpartIsAdmin: boolean })[]>;
   // Company functionality
   createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string }): Promise<Company>;
-  getAllCompanies(): Promise<Company[]>;
+  getAllCompanies(): Promise<(Company & { creatorEmail: string })[]>;
   getCompany(id: string): Promise<Company | undefined>;
   deleteCompany(id: string): Promise<{ success: boolean; refundedInvestors: number; totalRefunded: number; error?: string }>;
   investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }>;
@@ -194,6 +194,7 @@ export class DatabaseStorage implements IStorage {
         email: users.email,
         balance: users.balance,
         isAdmin: users.isAdmin,
+        isBanned: users.isBanned,
         friendshipStatus: friendships.status,
         friendshipUserId: friendships.userId,
         friendshipFriendId: friendships.friendId
@@ -213,14 +214,17 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    return result.map(row => ({
-      id: row.id,
-      email: row.email,
-      balance: row.balance,
-      isAdmin: row.isAdmin,
-      friendshipStatus: row.friendshipStatus,
-      requestedByCurrent: row.friendshipUserId === userId
-    }));
+    // Filter out banned users from the results
+    return result
+      .filter(row => !row.isBanned)
+      .map(row => ({
+        id: row.id,
+        email: row.email,
+        balance: row.balance,
+        isAdmin: row.isAdmin,
+        friendshipStatus: row.friendshipStatus,
+        requestedByCurrent: row.friendshipUserId === userId
+      }));
   }
 
   async updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean> {
@@ -253,7 +257,8 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(friendships.friendId, userId),
-          eq(friendships.status, 'pending')
+          eq(friendships.status, 'pending'),
+          eq(users.isBanned, false)
         )
       );
 
@@ -403,10 +408,23 @@ export class DatabaseStorage implements IStorage {
     return newCompany;
   }
 
-  async getAllCompanies(): Promise<Company[]> {
+  async getAllCompanies(): Promise<(Company & { creatorEmail: string })[]> {
     const allCompanies = await db
-      .select()
+      .select({
+        id: companies.id,
+        name: companies.name,
+        description: companies.description,
+        category: companies.category,
+        fundingGoal: companies.fundingGoal,
+        currentFunding: companies.currentFunding,
+        teamEmails: companies.teamEmails,
+        foundedAt: companies.foundedAt,
+        createdById: companies.createdById,
+        isDeleted: companies.isDeleted,
+        creatorEmail: users.email,
+      })
       .from(companies)
+      .innerJoin(users, eq(companies.createdById, users.id))
       .where(eq(companies.isDeleted, false))
       .orderBy(desc(companies.foundedAt));
     return allCompanies;

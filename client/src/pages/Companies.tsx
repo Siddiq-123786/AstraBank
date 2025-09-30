@@ -28,6 +28,7 @@ type Company = {
   teamEmails: string;
   foundedAt: string;
   createdById: string;
+  creatorEmail: string;
 };
 
 export default function Companies() {
@@ -190,6 +191,10 @@ export default function Companies() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Users className="w-3 h-3" />
                   <span className="truncate">{company.teamEmails.split(',').length + 1} team members</span>
+                </div>
+
+                <div className="text-xs text-muted-foreground" data-testid={`company-creator-${company.id}`}>
+                  Created by <span className="font-medium">{company.creatorEmail}</span>
                 </div>
 
                 <div className="text-xs text-muted-foreground">

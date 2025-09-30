@@ -89,14 +89,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
-      // Return user info including admin status for transparency
-      const publicUsers = users.map(user => ({
-        id: user.id,
-        email: user.email,
-        balance: user.balance,
-        isAdmin: user.isAdmin,
-        createdAt: user.createdAt
-      }));
+      // Filter out banned users from public view
+      const publicUsers = users
+        .filter(user => !user.isBanned)
+        .map(user => ({
+          id: user.id,
+          email: user.email,
+          balance: user.balance,
+          isAdmin: user.isAdmin,
+          createdAt: user.createdAt
+        }));
       res.json(publicUsers);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch users" });
