@@ -32,6 +32,7 @@ export interface IStorage {
   createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string }): Promise<Company>;
   getAllCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
+  deleteCompany(id: string): Promise<boolean>;
   investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }>;
   sessionStore: Store;
 }
@@ -406,6 +407,7 @@ export class DatabaseStorage implements IStorage {
     const allCompanies = await db
       .select()
       .from(companies)
+      .where(eq(companies.isDeleted, false))
       .orderBy(desc(companies.foundedAt));
     return allCompanies;
   }
@@ -414,15 +416,24 @@ export class DatabaseStorage implements IStorage {
     const [company] = await db
       .select()
       .from(companies)
-      .where(eq(companies.id, id));
+      .where(and(eq(companies.id, id), eq(companies.isDeleted, false)));
     return company || undefined;
+  }
+
+  async deleteCompany(id: string): Promise<boolean> {
+    const result = await db
+      .update(companies)
+      .set({ isDeleted: true })
+      .where(eq(companies.id, id))
+      .returning();
+    return result.length > 0;
   }
 
   async investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }> {
     try {
       await db.transaction(async (tx) => {
         // Get company details first
-        const [company] = await tx.select().from(companies).where(eq(companies.id, companyId));
+        const [company] = await tx.select().from(companies).where(and(eq(companies.id, companyId), eq(companies.isDeleted, false)));
         if (!company) {
           throw new Error("Company not found");
         }
