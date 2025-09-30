@@ -2,8 +2,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
-import { storage } from "./storage";
-import { sendMoneySchema, createCompanySchema, investmentSchema, type SendMoneyRequest, type Transaction, type CreateCompanyRequest, type InvestmentRequest } from "@shared/schema";
+import { storage, ValidationError } from "./storage";
+import { sendMoneySchema, createCompanySchema, investmentSchema, distributeEarningsSchema, type SendMoneyRequest, type Transaction, type CreateCompanyRequest, type InvestmentRequest, type DistributeEarningsRequest } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // sets up /api/register, /api/login, /api/logout, /api/user
@@ -241,7 +241,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       if (error.name === 'ZodError') {
         res.status(400).json({ error: "Invalid company data", details: error.errors });
+      } else if (error instanceof ValidationError) {
+        // Handle validation errors from storage layer
+        res.status(400).json({ error: error.message });
       } else {
+        console.error('Create company error:', error);
         res.status(500).json({ error: "Failed to create company" });
       }
     }
@@ -282,12 +286,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.investInCompany(id, req.user!.id, amount);
       
       if (result.success) {
-        res.json({ success: true, message: "Investment successful!" });
+        const equityPercent = result.basisPointsReceived ? (result.basisPointsReceived / 100).toFixed(2) : '0.00';
+        res.json({ 
+          success: true, 
+          message: `Investment successful! You received ${equityPercent}% equity.`,
+          basisPointsReceived: result.basisPointsReceived 
+        });
       } else {
         res.status(400).json({ error: result.error });
       }
     } catch (error: any) {
       res.status(500).json({ error: "Failed to process investment" });
+    }
+  });
+
+  // Company earnings distribution - admin only
+  app.post("/api/companies/:id/distribute-earnings", requireAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validatedData = distributeEarningsSchema.parse(req.body);
+      
+      const result = await storage.distributeEarnings(id, validatedData.grossAmount, req.user!.id);
+      
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: "Earnings distributed successfully",
+          adminShare: result.adminShare,
+          investorPayouts: result.investorPayouts
+        });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        res.status(400).json({ error: "Invalid earnings data", details: error.errors });
+      } else {
+        console.error('Distribute earnings error:', error);
+        res.status(500).json({ error: "Failed to distribute earnings" });
+      }
+    }
+  });
+
+  // Get company equity holders
+  app.get("/api/companies/:id/equity", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const equity = await storage.getCompanyEquity(id);
+      res.json(equity);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company equity" });
+    }
+  });
+
+  // Get company payouts history
+  app.get("/api/companies/:id/payouts", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const payouts = await storage.getCompanyPayouts(id);
+      res.json(payouts);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company payouts" });
+    }
+  });
+
+  // Get user's equity across all companies
+  app.get("/api/users/:id/equity", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      // Users can only view their own equity unless they're admin
+      if (id !== req.user!.id && !req.user!.isAdmin) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      const equity = await storage.getUserEquity(id);
+      res.json(equity);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user equity" });
     }
   });
 

@@ -154,11 +154,17 @@ export const createCompanySchema = z.object({
   })).refine(
     (allocations) => {
       const totalBps = allocations.reduce((sum, alloc) => sum + alloc.basisPoints, 0);
-      return totalBps <= 10000; // Total can't exceed 100%
+      return totalBps <= 10000; // Founder allocations can't exceed 100%
     },
-    { message: "Total equity allocations cannot exceed 100%" }
+    { message: "Total founder equity allocations cannot exceed 100%" }
   ),
-});
+}).refine(
+  (data) => {
+    const totalFounderBps = data.equityAllocations.reduce((sum, alloc) => sum + alloc.basisPoints, 0);
+    return totalFounderBps + data.investorPoolBps <= 10000;
+  },
+  { message: "Total equity (founder allocations + investor pool) cannot exceed 100%" }
+);
 
 export const investmentSchema = z.object({
   companyId: z.string().uuid(),

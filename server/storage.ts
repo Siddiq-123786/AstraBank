@@ -1,5 +1,5 @@
 // Referenced from blueprint:javascript_database and javascript_auth_all_persistance integrations
-import { users, friendships, transactions, companies, type User, type InsertUser, type Friendship, type Transaction, type InsertTransaction, type Company, type InsertCompany } from "@shared/schema";
+import { users, friendships, transactions, companies, companyEquityAllocations, companyInvestments, companyEarnings, companyPayouts, type User, type InsertUser, type Friendship, type Transaction, type InsertTransaction, type Company, type InsertCompany, type CompanyEquityAllocation, type CompanyInvestment, type CompanyEarnings, type CompanyPayout } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, sql } from "drizzle-orm";
 import session, { Store } from "express-session";
@@ -7,6 +7,14 @@ import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
+
+// Custom error class for validation errors
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -29,11 +37,15 @@ export interface IStorage {
   sendMoney(fromUserId: string, toUserId: string, amount: number, description: string): Promise<{ success: boolean; error?: string }>;
   getTransactions(userId: string, limit?: number): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string; counterpartIsAdmin: boolean })[]>;
   // Company functionality
-  createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string }): Promise<Company>;
+  createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string; investorPoolBps: number; equityAllocations: Array<{ email: string; basisPoints: number }> }): Promise<Company>;
   getAllCompanies(): Promise<(Company & { creatorEmail: string })[]>;
   getCompany(id: string): Promise<Company | undefined>;
   deleteCompany(id: string): Promise<{ success: boolean; refundedInvestors: number; totalRefunded: number; error?: string }>;
-  investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }>;
+  investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string; basisPointsReceived?: number }>;
+  distributeEarnings(companyId: string, grossAmount: number, distributedById: string): Promise<{ success: boolean; error?: string; adminShare?: number; investorPayouts?: number }>;
+  getCompanyEquity(companyId: string): Promise<(CompanyEquityAllocation & { userEmail: string })[]>;
+  getUserEquity(userId: string): Promise<(CompanyEquityAllocation & { companyName: string })[]>;
+  getCompanyPayouts(companyId: string): Promise<(CompanyPayout & { userEmail: string | null; earningsDate: Date })[]>;
   sessionStore: Store;
 }
 
@@ -400,12 +412,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Company methods
-  async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string }): Promise<Company> {
-    const [newCompany] = await db
-      .insert(companies)
-      .values(company)
-      .returning();
-    return newCompany;
+  async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string; investorPoolBps: number; equityAllocations: Array<{ email: string; basisPoints: number }> }): Promise<Company> {
+    return await db.transaction(async (tx) => {
+      // Validate total equity doesn't exceed 100%
+      const totalFounderBps = company.equityAllocations.reduce((sum, alloc) => sum + alloc.basisPoints, 0);
+      if (totalFounderBps + company.investorPoolBps > 10000) {
+        throw new ValidationError("Total equity (founder allocations + investor pool) cannot exceed 100%");
+      }
+
+      // Create the company
+      const [newCompany] = await tx
+        .insert(companies)
+        .values({
+          name: company.name,
+          description: company.description,
+          category: company.category,
+          fundingGoal: company.fundingGoal,
+          teamEmails: company.teamEmails,
+          createdById: company.createdById,
+          investorPoolBps: company.investorPoolBps,
+          allocatedInvestorBps: 0,
+          treasuryBalance: 0,
+        })
+        .returning();
+
+      // Create equity allocations for founders/team members
+      for (const allocation of company.equityAllocations) {
+        // Find user by email
+        const [user] = await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.email, allocation.email))
+          .limit(1);
+
+        if (user) {
+          await tx.insert(companyEquityAllocations).values({
+            companyId: newCompany.id,
+            userId: user.id,
+            basisPoints: allocation.basisPoints,
+            canReceivePayouts: true,
+          });
+        }
+      }
+
+      return newCompany;
+    });
   }
 
   async getAllCompanies(): Promise<(Company & { creatorEmail: string })[]> {
@@ -421,6 +472,9 @@ export class DatabaseStorage implements IStorage {
         foundedAt: companies.foundedAt,
         createdById: companies.createdById,
         isDeleted: companies.isDeleted,
+        investorPoolBps: companies.investorPoolBps,
+        allocatedInvestorBps: companies.allocatedInvestorBps,
+        treasuryBalance: companies.treasuryBalance,
         creatorEmail: users.email,
       })
       .from(companies)
@@ -530,13 +584,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string }> {
+  async investInCompany(companyId: string, userId: string, amount: number): Promise<{ success: boolean; error?: string; basisPointsReceived?: number }> {
     try {
-      await db.transaction(async (tx) => {
+      return await db.transaction(async (tx) => {
         // Get company details first
         const [company] = await tx.select().from(companies).where(and(eq(companies.id, companyId), eq(companies.isDeleted, false)));
         if (!company) {
-          throw new Error("Company not found");
+          return { success: false, error: "Company not found" };
+        }
+
+        // Calculate equity allocation proportionally based on investment
+        const remainingPool = company.investorPoolBps - company.allocatedInvestorBps;
+        const investmentProportion = amount / company.fundingGoal;
+        const basisPointsToAllocate = Math.floor(company.investorPoolBps * investmentProportion);
+
+        if (basisPointsToAllocate > remainingPool) {
+          return { success: false, error: "Insufficient investor pool remaining" };
         }
 
         // Atomic balance deduction with concurrency protection
@@ -547,13 +610,17 @@ export class DatabaseStorage implements IStorage {
           .returning({ balance: users.balance });
         
         if (investorUpdate.length === 0) {
-          throw new Error("Insufficient balance");
+          return { success: false, error: "Insufficient balance" };
         }
 
         // Atomic company funding update with overfunding protection  
         const companyUpdate = await tx
           .update(companies)
-          .set({ currentFunding: sql`${companies.currentFunding} + ${amount}` })
+          .set({ 
+            currentFunding: sql`${companies.currentFunding} + ${amount}`,
+            allocatedInvestorBps: sql`${companies.allocatedInvestorBps} + ${basisPointsToAllocate}`,
+            treasuryBalance: sql`${companies.treasuryBalance} + ${amount}`,
+          })
           .where(and(
             eq(companies.id, companyId),
             sql`${companies.fundingGoal} - ${companies.currentFunding} >= ${amount}`
@@ -562,19 +629,42 @@ export class DatabaseStorage implements IStorage {
           
         if (companyUpdate.length === 0) {
           const remainingFunding = company.fundingGoal - company.currentFunding;
-          throw new Error(`Cannot invest ${amount} Astras. Only ${remainingFunding} Astras remaining to reach funding goal.`);
+          return { success: false, error: `Cannot invest ${amount} Astras. Only ${remainingFunding} Astras remaining to reach funding goal.` };
         }
 
-        // CRITICAL: Credit the company creator with the investment funds
-        const creatorUpdate = await tx
-          .update(users)
-          .set({ balance: sql`${users.balance} + ${amount}` })
-          .where(eq(users.id, company.createdById))
-          .returning({ balance: users.balance });
-          
-        if (creatorUpdate.length === 0) {
-          throw new Error("Company creator not found");
+        // Check if investor already has equity in this company
+        const [existingEquity] = await tx
+          .select()
+          .from(companyEquityAllocations)
+          .where(and(
+            eq(companyEquityAllocations.companyId, companyId),
+            eq(companyEquityAllocations.userId, userId)
+          ))
+          .limit(1);
+
+        if (existingEquity) {
+          // Update existing equity
+          await tx
+            .update(companyEquityAllocations)
+            .set({ basisPoints: sql`${companyEquityAllocations.basisPoints} + ${basisPointsToAllocate}` })
+            .where(eq(companyEquityAllocations.id, existingEquity.id));
+        } else {
+          // Create new equity allocation
+          await tx.insert(companyEquityAllocations).values({
+            companyId: companyId,
+            userId: userId,
+            basisPoints: basisPointsToAllocate,
+            canReceivePayouts: true,
+          });
         }
+
+        // Record investment in audit trail
+        await tx.insert(companyInvestments).values({
+          companyId: companyId,
+          userId: userId,
+          amount: amount,
+          basisPointsReceived: basisPointsToAllocate,
+        });
 
         // Record investment transaction
         await tx
@@ -584,15 +674,195 @@ export class DatabaseStorage implements IStorage {
             toUserId: company.createdById,
             amount,
             type: 'invest',
-            description: `Investment in ${company.name}`,
+            description: `Investment in ${company.name} (${(basisPointsToAllocate / 100).toFixed(2)}% equity)`,
             companyId: companyId,
           });
-      });
 
-      return { success: true };
+        return { success: true, basisPointsReceived: basisPointsToAllocate };
+      });
     } catch (error: any) {
       return { success: false, error: error.message || "Investment failed" };
     }
+  }
+
+  async distributeEarnings(companyId: string, grossAmount: number, distributedById: string): Promise<{ success: boolean; error?: string; adminShare?: number; investorPayouts?: number }> {
+    try {
+      return await db.transaction(async (tx) => {
+        // Get company
+        const [company] = await tx.select().from(companies).where(and(eq(companies.id, companyId), eq(companies.isDeleted, false)));
+        if (!company) {
+          return { success: false, error: "Company not found" };
+        }
+
+        // Check if company has enough balance
+        if (company.treasuryBalance < grossAmount) {
+          return { success: false, error: "Insufficient company treasury balance" };
+        }
+
+        // Calculate admin share (1.5% split among all admins)
+        const adminShare = Math.floor(grossAmount * 0.015);
+        const distributableAmount = grossAmount - adminShare;
+
+        // Get all active admins
+        const admins = await tx.select().from(users).where(and(eq(users.isAdmin, true), eq(users.isBanned, false)));
+        const adminSharePerAdmin = Math.floor(adminShare / admins.length);
+
+        // Create earnings record
+        const [earningsRecord] = await tx.insert(companyEarnings).values({
+          companyId: companyId,
+          grossAmount: grossAmount,
+          adminShare: adminShare,
+          distributableAmount: distributableAmount,
+          distributedById: distributedById,
+        }).returning();
+
+        // Distribute admin share
+        for (const admin of admins) {
+          await tx.update(users).set({ balance: sql`${users.balance} + ${adminSharePerAdmin}` }).where(eq(users.id, admin.id));
+          
+          await tx.insert(companyPayouts).values({
+            earningsId: earningsRecord.id,
+            companyId: companyId,
+            userId: admin.id,
+            amount: adminSharePerAdmin,
+            payoutType: 'admin',
+          });
+
+          await tx.insert(transactions).values({
+            fromUserId: company.createdById,
+            toUserId: admin.id,
+            amount: adminSharePerAdmin,
+            type: 'earn',
+            description: `Admin share from ${company.name} earnings`,
+            companyId: companyId,
+          });
+        }
+
+        // Get all equity holders
+        const equityHolders = await tx.select().from(companyEquityAllocations).where(eq(companyEquityAllocations.companyId, companyId));
+        const totalBps = equityHolders.reduce((sum, holder) => sum + holder.basisPoints, 0);
+
+        // Distribute to equity holders
+        for (const holder of equityHolders) {
+          const payoutAmount = Math.floor((holder.basisPoints / totalBps) * distributableAmount);
+          
+          if (holder.canReceivePayouts) {
+            // Get user to check if banned
+            const [user] = await tx.select().from(users).where(eq(users.id, holder.userId));
+            
+            if (user && !user.isBanned) {
+              await tx.update(users).set({ balance: sql`${users.balance} + ${payoutAmount}` }).where(eq(users.id, holder.userId));
+              
+              await tx.insert(companyPayouts).values({
+                earningsId: earningsRecord.id,
+                companyId: companyId,
+                userId: holder.userId,
+                amount: payoutAmount,
+                payoutType: 'investor',
+              });
+
+              await tx.insert(transactions).values({
+                fromUserId: company.createdById,
+                toUserId: holder.userId,
+                amount: payoutAmount,
+                type: 'earn',
+                description: `${(holder.basisPoints / 100).toFixed(2)}% share of ${company.name} earnings`,
+                companyId: companyId,
+              });
+            } else {
+              // Withheld - user is banned
+              await tx.insert(companyPayouts).values({
+                earningsId: earningsRecord.id,
+                companyId: companyId,
+                userId: null,
+                amount: payoutAmount,
+                payoutType: 'withheld',
+              });
+            }
+          } else {
+            // Withheld - canReceivePayouts is false
+            await tx.insert(companyPayouts).values({
+              earningsId: earningsRecord.id,
+              companyId: companyId,
+              userId: null,
+              amount: payoutAmount,
+              payoutType: 'withheld',
+            });
+          }
+        }
+
+        // Deduct from company treasury
+        await tx.update(companies).set({ treasuryBalance: sql`${companies.treasuryBalance} - ${grossAmount}` }).where(eq(companies.id, companyId));
+
+        return { success: true, adminShare: adminShare, investorPayouts: distributableAmount };
+      });
+    } catch (error: any) {
+      console.error('Distribute earnings error:', error);
+      return { success: false, error: error.message || "Failed to distribute earnings" };
+    }
+  }
+
+  async getCompanyEquity(companyId: string): Promise<(CompanyEquityAllocation & { userEmail: string })[]> {
+    const equity = await db
+      .select({
+        id: companyEquityAllocations.id,
+        companyId: companyEquityAllocations.companyId,
+        userId: companyEquityAllocations.userId,
+        basisPoints: companyEquityAllocations.basisPoints,
+        canReceivePayouts: companyEquityAllocations.canReceivePayouts,
+        createdAt: companyEquityAllocations.createdAt,
+        userEmail: users.email,
+      })
+      .from(companyEquityAllocations)
+      .innerJoin(users, eq(companyEquityAllocations.userId, users.id))
+      .where(eq(companyEquityAllocations.companyId, companyId))
+      .orderBy(desc(companyEquityAllocations.basisPoints));
+    
+    return equity;
+  }
+
+  async getUserEquity(userId: string): Promise<(CompanyEquityAllocation & { companyName: string })[]> {
+    const equity = await db
+      .select({
+        id: companyEquityAllocations.id,
+        companyId: companyEquityAllocations.companyId,
+        userId: companyEquityAllocations.userId,
+        basisPoints: companyEquityAllocations.basisPoints,
+        canReceivePayouts: companyEquityAllocations.canReceivePayouts,
+        createdAt: companyEquityAllocations.createdAt,
+        companyName: companies.name,
+      })
+      .from(companyEquityAllocations)
+      .innerJoin(companies, eq(companyEquityAllocations.companyId, companies.id))
+      .where(and(
+        eq(companyEquityAllocations.userId, userId),
+        eq(companies.isDeleted, false)
+      ))
+      .orderBy(desc(companyEquityAllocations.basisPoints));
+    
+    return equity;
+  }
+
+  async getCompanyPayouts(companyId: string): Promise<(CompanyPayout & { userEmail: string | null; earningsDate: Date })[]> {
+    const payouts = await db
+      .select({
+        id: companyPayouts.id,
+        earningsId: companyPayouts.earningsId,
+        companyId: companyPayouts.companyId,
+        userId: companyPayouts.userId,
+        amount: companyPayouts.amount,
+        payoutType: companyPayouts.payoutType,
+        createdAt: companyPayouts.createdAt,
+        userEmail: users.email,
+        earningsDate: companyEarnings.createdAt,
+      })
+      .from(companyPayouts)
+      .leftJoin(users, eq(companyPayouts.userId, users.id))
+      .innerJoin(companyEarnings, eq(companyPayouts.earningsId, companyEarnings.id))
+      .where(eq(companyPayouts.companyId, companyId))
+      .orderBy(desc(companyPayouts.createdAt));
+    
+    return payouts;
   }
 
 }
