@@ -25,9 +25,10 @@ export default function DistributeEarningsModal({
   const { toast } = useToast();
 
   const distributeEarningsMutation = useMutation({
-    mutationFn: async (data: { companyId: string; amount: number }) => {
+    mutationFn: async (data: { companyId: string; grossAmount: number }) => {
       const res = await apiRequest('POST', `/api/companies/${data.companyId}/distribute-earnings`, {
-        amount: data.amount
+        companyId: data.companyId,
+        grossAmount: data.grossAmount
       });
       return res.json();
     },
@@ -54,12 +55,38 @@ export default function DistributeEarningsModal({
 
   const handleDistribute = () => {
     const amountNum = parseInt(amount);
-    if (amount && amountNum > 0) {
-      distributeEarningsMutation.mutate({
-        companyId,
-        amount: amountNum
+    
+    if (!amount || isNaN(amountNum)) {
+      toast({
+        title: "Invalid amount",
+        description: "Please enter a valid earnings amount",
+        variant: "destructive",
       });
+      return;
     }
+    
+    if (amountNum < 100) {
+      toast({
+        title: "Amount too small",
+        description: "Minimum distribution is 100 Astras",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (amountNum > 1000000) {
+      toast({
+        title: "Amount too large",
+        description: "Maximum distribution is 1,000,000 Astras",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    distributeEarningsMutation.mutate({
+      companyId,
+      grossAmount: amountNum
+    });
   };
 
   return (
@@ -86,12 +113,17 @@ export default function DistributeEarningsModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="font-mono"
-              min="1"
+              min="100"
+              max="1000000"
               step="1"
               data-testid="input-earnings-amount"
             />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Minimum: 100 Astras</span>
+              <span>Maximum: 1,000,000 Astras</span>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Each admin receives 1.5% (total admin fee: 4.5% with 3 admins). Enter whole numbers only.
+              Each admin receives 1.5% (total admin fee: 4.5% with 3 admins)
             </p>
           </div>
 
@@ -106,7 +138,7 @@ export default function DistributeEarningsModal({
             </Button>
             <Button 
               onClick={handleDistribute}
-              disabled={!amount || parseInt(amount) <= 0 || distributeEarningsMutation.isPending}
+              disabled={!amount || parseInt(amount) < 100 || distributeEarningsMutation.isPending}
               className="flex-1"
               data-testid="button-distribute-earnings"
             >
