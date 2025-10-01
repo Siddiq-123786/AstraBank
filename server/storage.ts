@@ -712,7 +712,10 @@ export class DatabaseStorage implements IStorage {
 
         // Check if company has enough balance
         if (company.treasuryBalance < grossAmount) {
-          return { success: false, error: "Insufficient company treasury balance" };
+          return { 
+            success: false, 
+            error: `Insufficient company treasury. Available: ${company.treasuryBalance.toLocaleString()} Astras, Required: ${grossAmount.toLocaleString()} Astras. The company needs more investments before distributing earnings.` 
+          };
         }
 
         // Get all active admins

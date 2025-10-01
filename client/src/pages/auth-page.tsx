@@ -66,7 +66,7 @@ export default function AuthPage() {
                       <Input
                         id="register-email"
                         type="email"
-                        placeholder="your.name@astranova.edu"
+                        placeholder="your.name@astranova.org"
                         value={registerData.email}
                         onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
                         required
@@ -113,7 +113,7 @@ export default function AuthPage() {
                       <Input
                         id="login-email"
                         type="email"
-                        placeholder="your.name@astranova.edu"
+                        placeholder="your.name@astranova.org"
                         value={loginData.email}
                         onChange={(e) => setLoginData({...loginData, email: e.target.value})}
                         required
