@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import DistributeEarningsModal from "@/components/DistributeEarningsModal";
+import InvestModal from "@/components/InvestModal";
 
 type Company = {
   id: string;
@@ -39,6 +40,8 @@ export default function Companies() {
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [earningsDialogOpen, setEarningsDialogOpen] = useState(false);
   const [companyForEarnings, setCompanyForEarnings] = useState<Company | null>(null);
+  const [investDialogOpen, setInvestDialogOpen] = useState(false);
+  const [companyToInvest, setCompanyToInvest] = useState<Company | null>(null);
 
   const { data: companies = [], isLoading, error } = useQuery<Company[]>({
     queryKey: ['/api/companies'],
@@ -88,6 +91,11 @@ export default function Companies() {
   const handleEarningsClick = (company: Company) => {
     setCompanyForEarnings(company);
     setEarningsDialogOpen(true);
+  };
+
+  const handleInvestClick = (company: Company) => {
+    setCompanyToInvest(company);
+    setInvestDialogOpen(true);
   };
 
   if (isLoading) {
@@ -214,6 +222,7 @@ export default function Companies() {
                     <Button 
                       size="sm" 
                       className="w-full"
+                      onClick={() => handleInvestClick(company)}
                       data-testid={`button-invest-${company.id}`}
                     >
                       <TrendingUp className="w-4 h-4 mr-1" />
@@ -276,6 +285,12 @@ export default function Companies() {
           companyName={companyForEarnings.name}
         />
       )}
+
+      <InvestModal
+        open={investDialogOpen}
+        onOpenChange={setInvestDialogOpen}
+        company={companyToInvest}
+      />
     </div>
   );
 }
