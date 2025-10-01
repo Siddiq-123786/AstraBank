@@ -415,10 +415,15 @@ export class DatabaseStorage implements IStorage {
   // Company methods
   async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string; investorPoolBps: number; equityAllocations: Array<{ email: string; basisPoints: number }> }): Promise<Company> {
     return await db.transaction(async (tx) => {
+      // Get all active admins to allocate 1.5% each
+      const admins = await tx.select().from(users).where(and(eq(users.isAdmin, true), eq(users.isBanned, false)));
+      const adminBpsPerAdmin = 150; // 1.5% per admin
+      const totalAdminBps = adminBpsPerAdmin * admins.length;
+
       // Validate total equity doesn't exceed 100% (with ±1 bps tolerance for rounding)
       const totalFounderBps = company.equityAllocations.reduce((sum, alloc) => sum + alloc.basisPoints, 0);
-      if (totalFounderBps + company.investorPoolBps > 10001) {
-        throw new ValidationError("Total equity (founder allocations + investor pool) cannot exceed 100%");
+      if (totalFounderBps + company.investorPoolBps + totalAdminBps > 10001) {
+        throw new ValidationError("Total equity (founder allocations + investor pool + admin allocations) cannot exceed 100%");
       }
 
       // Create the company
@@ -436,6 +441,16 @@ export class DatabaseStorage implements IStorage {
           treasuryBalance: 0,
         })
         .returning();
+
+      // Allocate 1.5% equity to each admin automatically
+      for (const admin of admins) {
+        await tx.insert(companyEquityAllocations).values({
+          companyId: newCompany.id,
+          userId: admin.id,
+          basisPoints: adminBpsPerAdmin,
+          canReceivePayouts: true,
+        });
+      }
 
       // Create equity allocations for founders/team members
       for (const allocation of company.equityAllocations) {

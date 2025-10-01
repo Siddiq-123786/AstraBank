@@ -26,7 +26,7 @@ export default function DistributeEarningsModal({
 
   const distributeEarningsMutation = useMutation({
     mutationFn: async (data: { companyId: string; amount: number }) => {
-      const res = await apiRequest('POST', `/api/companies/${data.companyId}/earnings`, {
+      const res = await apiRequest('POST', `/api/companies/${data.companyId}/distribute-earnings`, {
         amount: data.amount
       });
       return res.json();

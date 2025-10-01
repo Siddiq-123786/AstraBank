@@ -34,6 +34,9 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
   ]);
   const { toast } = useToast();
 
+  // Admin equity is automatically allocated: 1.5% per admin (3 admins = 4.5% total)
+  const ADMIN_EQUITY_BPS = 450; // 4.5%
+
   const createCompanyMutation = useMutation({
     mutationFn: (data: CreateCompanyRequest) => 
       apiRequest('POST', '/api/companies', data),
@@ -104,7 +107,7 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
     }, 0);
     const investorPoolValue = isValidNumericInput(investorPoolPercentage) ? Number(investorPoolPercentage) : 0;
     const investorPoolBps = Math.round(investorPoolValue * 100);
-    return founderBps + investorPoolBps;
+    return founderBps + investorPoolBps + ADMIN_EQUITY_BPS;
   };
 
   const validateEmail = (email: string): boolean => {
@@ -197,11 +200,11 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
         basisPoints: Math.round(Number(alloc.percentage) * 100)
       }));
 
-    const totalBps = equityAllocationsData.reduce((sum, alloc) => sum + alloc.basisPoints, 0) + investorPoolBps;
+    const totalBps = equityAllocationsData.reduce((sum, alloc) => sum + alloc.basisPoints, 0) + investorPoolBps + ADMIN_EQUITY_BPS;
     if (totalBps > 10001) {
       toast({
         title: "Invalid equity allocation",
-        description: `Total equity is ${(totalBps / 100).toFixed(2)}% which exceeds 100%. This can happen due to rounding. Please adjust your allocations slightly.`,
+        description: `Total equity is ${(totalBps / 100).toFixed(2)}% which exceeds 100% (includes 4.5% automatic admin allocation). Please adjust your allocations.`,
         variant: "destructive",
       });
       return;
@@ -341,6 +344,13 @@ export default function CreateCompanyModal({ open, onOpenChange }: CreateCompany
                 Reserved for future investors (automatically distributed)
               </p>
             </div>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>4.5% automatically allocated to admins</strong> (1.5% each to Siddiq, Cozy, and Tomo)
+              </AlertDescription>
+            </Alert>
 
             <div className="space-y-2">
               <Label className="flex items-center justify-between">
