@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -22,11 +22,14 @@ import {
   UserCheck,
   ArrowRight,
   ArrowLeft,
-  Edit
+  Edit,
+  UserMinus
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import EditProfileModal from "@/components/EditProfileModal";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfileModalProps {
   open: boolean;
@@ -81,6 +84,7 @@ function getUsername(email: string): string {
 
 export default function UserProfileModal({ open, onOpenChange, userId }: UserProfileModalProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showAllFriends, setShowAllFriends] = useState(false);
   const [showAllPendingRequests, setShowAllPendingRequests] = useState(false);
@@ -95,6 +99,29 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
       return res.json();
     },
     enabled: !!userId && open,
+  });
+  
+  const removeFriendMutation = useMutation({
+    mutationFn: async (friendId: string) => {
+      return await apiRequest(`/api/friends/${friendId}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/friends'] });
+      toast({
+        title: "Friend removed",
+        description: "You are no longer friends with this user",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove friend",
+        variant: "destructive",
+      });
+    },
   });
   
   const isOwnProfile = user?.id === userId;
@@ -158,7 +185,7 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                     )}
                   </div>
                 </div>
-                {isOwnProfile && (
+                {isOwnProfile ? (
                   <Button
                     size="sm"
                     variant="outline"
@@ -168,7 +195,18 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                     <Edit className="w-4 h-4 mr-1" />
                     Edit
                   </Button>
-                )}
+                ) : profile.friendshipStatus === 'accepted' ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => removeFriendMutation.mutate(profile.id)}
+                    disabled={removeFriendMutation.isPending}
+                    data-testid="button-unfriend-user"
+                  >
+                    <UserMinus className="w-4 h-4 mr-1" />
+                    Unfriend
+                  </Button>
+                ) : null}
               </div>
             </DialogHeader>
 
@@ -230,9 +268,23 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                   ) : (
                     <div className="space-y-2">
                       {(showAllFriends ? profile.friends : profile.friends.slice(0, 5)).map((friend) => (
-                        <div key={friend.id} className="flex items-center justify-between py-1">
-                          <span className="text-sm">{getUsername(friend.email)}</span>
-                          <span className="text-xs text-muted-foreground">{friend.email}</span>
+                        <div key={friend.id} className="flex items-center justify-between py-1 gap-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-sm truncate">{getUsername(friend.email)}</span>
+                            <span className="text-xs text-muted-foreground truncate">{friend.email}</span>
+                          </div>
+                          {isOwnProfile && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeFriendMutation.mutate(friend.id)}
+                              disabled={removeFriendMutation.isPending}
+                              className="shrink-0"
+                              data-testid={`button-remove-friend-${friend.id}`}
+                            >
+                              <UserMinus className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       ))}
                       {profile.friends.length > 5 && (

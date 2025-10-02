@@ -195,6 +195,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/friends/:friendId", requireAuth, async (req, res) => {
+    try {
+      const { friendId } = req.params;
+      const removed = await storage.removeFriend(req.user!.id, friendId);
+      
+      if (!removed) {
+        return res.status(404).json({ error: "Friendship not found" });
+      }
+      
+      res.json({ success: true, message: "Friend removed successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to remove friend" });
+    }
+  });
+
   app.get("/api/friends/recommended", requireAuth, async (req, res) => {
     try {
       const recommendations = await storage.getRecommendedUsers(req.user!.id);

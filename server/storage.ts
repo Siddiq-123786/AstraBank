@@ -33,6 +33,7 @@ export interface IStorage {
   addFriend(userId: string, friendEmail: string): Promise<void>;
   getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance' | 'isAdmin'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
   updateFriendshipStatus(userId: string, friendId: string, status: string): Promise<boolean>;
+  removeFriend(userId: string, friendId: string): Promise<boolean>;
   getFriendRequests(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance' | 'isAdmin'> & { friendshipId: string })[]>;
   getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'isAdmin'>[]>;
   // Money transfer functionality
@@ -404,6 +405,20 @@ export class DatabaseStorage implements IStorage {
           eq(friendships.friendId, userId),      // Current user is the recipient
           eq(friendships.userId, friendId),      // The other user is the sender
           eq(friendships.status, 'pending')      // Request is still pending
+        )
+      );
+    
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async removeFriend(userId: string, friendId: string): Promise<boolean> {
+    // Delete the friendship between these two users (bidirectional check)
+    const result = await db
+      .delete(friendships)
+      .where(
+        or(
+          and(eq(friendships.userId, userId), eq(friendships.friendId, friendId)),
+          and(eq(friendships.userId, friendId), eq(friendships.friendId, userId))
         )
       );
     
