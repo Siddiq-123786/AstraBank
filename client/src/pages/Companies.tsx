@@ -31,6 +31,7 @@ type Company = {
   foundedAt: string;
   createdById: string;
   creatorEmail: string;
+  totalEarningsDistributed: number;
 };
 
 export default function Companies() {
@@ -203,6 +204,25 @@ export default function Companies() {
                     <span>{company.fundingGoal.toLocaleString()} Goal</span>
                   </div>
                 </div>
+
+                {company.totalEarningsDistributed > 0 && (
+                  <div className="bg-accent/50 rounded-lg p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium">Total Distributed</span>
+                      <span className="text-sm font-bold text-primary" data-testid={`company-earnings-${company.id}`}>
+                        ⭐ {company.totalEarningsDistributed.toLocaleString()}
+                      </span>
+                    </div>
+                    {company.currentFunding > 0 && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">ROI</span>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {((company.totalEarningsDistributed / company.currentFunding) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Users className="w-3 h-3" />

@@ -625,6 +625,7 @@ export class DatabaseStorage implements IStorage {
         investorPoolBps: companies.investorPoolBps,
         allocatedInvestorBps: companies.allocatedInvestorBps,
         treasuryBalance: companies.treasuryBalance,
+        totalEarningsDistributed: companies.totalEarningsDistributed,
         creatorEmail: users.email,
       })
       .from(companies)
