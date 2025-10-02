@@ -944,8 +944,11 @@ export class DatabaseStorage implements IStorage {
           }
         }
 
-        // Deduct from company treasury
-        await tx.update(companies).set({ treasuryBalance: sql`${companies.treasuryBalance} - ${grossAmount}` }).where(eq(companies.id, companyId));
+        // Deduct from company treasury and track total distributed
+        await tx.update(companies).set({ 
+          treasuryBalance: sql`${companies.treasuryBalance} - ${grossAmount}`,
+          totalEarningsDistributed: sql`${companies.totalEarningsDistributed} + ${grossAmount}`
+        }).where(eq(companies.id, companyId));
 
         return { success: true, adminShare: adminShare, investorPayouts: distributableAmount };
       });
