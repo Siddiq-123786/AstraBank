@@ -15,6 +15,7 @@ type EquityHolding = {
   canReceivePayouts: boolean;
   createdAt: Date;
   companyName: string;
+  totalInvested: number;
 };
 
 type Payout = {
@@ -40,11 +41,6 @@ export default function Investments() {
 
   const { data: payouts = [], isLoading: isLoadingPayouts, error: payoutsError } = useQuery<Payout[]>({
     queryKey: [`/api/users/${user?.id}/payouts`],
-    enabled: !!user?.id,
-  });
-
-  const { data: transactions = [] } = useQuery<any[]>({
-    queryKey: ['/api/transactions'],
     enabled: !!user?.id,
   });
 
@@ -75,17 +71,8 @@ export default function Investments() {
 
   const totalEarnings = payouts.reduce((sum, payout) => sum + payout.amount, 0);
 
-  // Calculate total invested per company
-  const investmentsByCompany = transactions
-    .filter((tx: any) => tx.type === 'invest')
-    .reduce((acc: Record<string, number>, tx: any) => {
-      if (tx.companyId) {
-        acc[tx.companyId] = (acc[tx.companyId] || 0) + tx.amount;
-      }
-      return acc;
-    }, {});
-
-  const totalInvested = Object.values(investmentsByCompany).reduce((sum: number, amount: any) => sum + amount, 0);
+  // Calculate total invested from equity holdings
+  const totalInvested = equity.reduce((sum, holding) => sum + holding.totalInvested, 0);
 
   // Calculate earnings per company
   const earningsByCompany = payouts.reduce((acc: Record<string, number>, payout) => {
@@ -94,8 +81,7 @@ export default function Investments() {
   }, {} as Record<string, number>);
 
   // Calculate ROI for a specific company
-  const getCompanyROI = (companyId: string) => {
-    const invested = investmentsByCompany[companyId] || 0;
+  const getCompanyROI = (companyId: string, invested: number) => {
     const earned = earningsByCompany[companyId] || 0;
     if (invested === 0) return 0;
     return ((earned / invested) * 100);
@@ -215,9 +201,9 @@ export default function Investments() {
           ) : (
             <div className="space-y-3">
               {equity.map((holding) => {
-                const invested = investmentsByCompany[holding.companyId] || 0;
+                const invested = holding.totalInvested;
                 const earned = earningsByCompany[holding.companyId] || 0;
-                const roi = getCompanyROI(holding.companyId);
+                const roi = getCompanyROI(holding.companyId, invested);
                 
                 return (
                   <div

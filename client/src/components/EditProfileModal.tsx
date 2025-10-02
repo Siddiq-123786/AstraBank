@@ -27,7 +27,7 @@ export default function EditProfileModal({
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { username: string; bio: string }) => {
-      const res = await apiRequest('POST', '/api/user/profile', {
+      const res = await apiRequest('PATCH', '/api/users/profile', {
         username: data.username || null,
         bio: data.bio || null
       });
@@ -105,7 +105,7 @@ export default function EditProfileModal({
           <Button
             onClick={handleSave}
             disabled={updateProfileMutation.isPending}
-            data-testid="button-save"
+            data-testid="button-save-profile"
           >
             {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>

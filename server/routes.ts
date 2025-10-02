@@ -97,6 +97,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: user.email,
           balance: user.balance,
           isAdmin: user.isAdmin,
+          username: user.username,
+          bio: user.bio,
           createdAt: user.createdAt
         }));
       res.json(publicUsers);
@@ -120,7 +122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update user profile
-  app.post("/api/user/profile", requireAuth, async (req, res) => {
+  app.patch("/api/users/profile", requireAuth, async (req, res) => {
     try {
       const { username, bio } = req.body;
       await storage.updateUserProfile(req.user!.id, username || null, bio || null);

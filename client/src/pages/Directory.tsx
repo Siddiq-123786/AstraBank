@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users as UsersIcon, Crown, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import UserProfileModal from "@/components/UserProfileModal";
 
 type UserProfile = {
   id: string;
@@ -14,6 +16,7 @@ type UserProfile = {
 
 export default function Directory() {
   const { user: currentUser } = useAuth();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   
   const { data: users = [], isLoading, error } = useQuery<UserProfile[]>({
     queryKey: ['/api/users'],
@@ -75,9 +78,10 @@ export default function Directory() {
             {sortedUsers.map((user) => (
               <div 
                 key={user.id} 
-                className={`flex items-center gap-2 p-3 rounded-md border ${
+                className={`flex items-center gap-2 p-3 rounded-md border cursor-pointer ${
                   user.id === currentUser?.id ? 'bg-accent border-accent-border' : 'hover-elevate'
                 }`}
+                onClick={() => setSelectedUserId(user.id)}
                 data-testid={`directory-item-${user.id}`}
               >
                 <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -97,6 +101,12 @@ export default function Directory() {
           </div>
         </CardContent>
       </Card>
+      
+      <UserProfileModal
+        open={selectedUserId !== null}
+        onOpenChange={(open) => !open && setSelectedUserId(null)}
+        userId={selectedUserId}
+      />
     </div>
   );
 }

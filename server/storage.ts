@@ -985,7 +985,7 @@ export class DatabaseStorage implements IStorage {
     return equity;
   }
 
-  async getUserEquity(userId: string): Promise<(CompanyEquityAllocation & { companyName: string })[]> {
+  async getUserEquity(userId: string): Promise<(CompanyEquityAllocation & { companyName: string; totalInvested: number })[]> {
     const equity = await db
       .select({
         id: companyEquityAllocations.id,
@@ -1004,7 +1004,27 @@ export class DatabaseStorage implements IStorage {
       ))
       .orderBy(desc(companyEquityAllocations.basisPoints));
     
-    return equity;
+    // For each equity holding, calculate total invested from companyInvestments table
+    const equityWithInvested = await Promise.all(
+      equity.map(async (holding) => {
+        const investments = await db
+          .select({
+            total: sql<number>`COALESCE(SUM(${companyInvestments.amount}), 0)`,
+          })
+          .from(companyInvestments)
+          .where(and(
+            eq(companyInvestments.companyId, holding.companyId),
+            eq(companyInvestments.userId, userId)
+          ));
+        
+        return {
+          ...holding,
+          totalInvested: investments[0]?.total || 0,
+        };
+      })
+    );
+    
+    return equityWithInvested;
   }
 
   async getCompanyPayouts(companyId: string): Promise<(CompanyPayout & { userEmail: string | null; earningsDate: Date })[]> {
