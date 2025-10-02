@@ -235,6 +235,18 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
+    // Get count of incoming friend requests (sent TO them)
+    const incomingRequests = await db
+      .select()
+      .from(friendships)
+      .where(
+        and(
+          eq(friendships.friendId, userId),
+          eq(friendships.status, 'pending')
+        )
+      );
+    const incomingRequestsCount = incomingRequests.length;
+
     // Get recent transactions involving this user (limit 10)
     const recentTransactions = await db
       .select({
@@ -301,6 +313,7 @@ export class DatabaseStorage implements IStorage {
       requestedByCurrent,
       friends: acceptedFriends,
       pendingRequests,
+      incomingRequestsCount,
       recentTransactions,
       investments,
       createdCompanies,

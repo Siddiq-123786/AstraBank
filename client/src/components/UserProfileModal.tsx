@@ -46,6 +46,7 @@ type UserProfile = {
   requestedByCurrent: boolean;
   friends: Array<{ id: string; email: string }>;
   pendingRequests: Array<{ id: string; email: string }>;
+  incomingRequestsCount: number;
   recentTransactions: Array<{
     id: string;
     amount: number;
@@ -172,8 +173,8 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
             </DialogHeader>
 
             <div className="space-y-6 pt-4">
-              {/* Balance & Join Date */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Balance & Join Date & Incoming Requests */}
+              <div className="grid grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2 mb-1">
@@ -184,6 +185,18 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                       {profile.balance.toLocaleString()}
                     </p>
                     <p className="text-xs text-muted-foreground">Astras</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <UserPlus className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Pending</span>
+                    </div>
+                    <p className="text-2xl font-bold" data-testid="profile-incoming-requests">
+                      {profile.incomingRequestsCount}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Friend Requests</p>
                   </CardContent>
                 </Card>
                 <Card>
