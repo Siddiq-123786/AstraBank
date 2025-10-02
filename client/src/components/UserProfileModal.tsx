@@ -81,6 +81,8 @@ function getUsername(email: string): string {
 export default function UserProfileModal({ open, onOpenChange, userId }: UserProfileModalProps) {
   const { user } = useAuth();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [showAllFriends, setShowAllFriends] = useState(false);
+  const [showAllPendingRequests, setShowAllPendingRequests] = useState(false);
   
   const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['/api/users', userId, 'profile'],
@@ -214,16 +216,20 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                     <p className="text-sm text-muted-foreground">No friends yet</p>
                   ) : (
                     <div className="space-y-2">
-                      {profile.friends.slice(0, 5).map((friend) => (
+                      {(showAllFriends ? profile.friends : profile.friends.slice(0, 5)).map((friend) => (
                         <div key={friend.id} className="flex items-center justify-between py-1">
                           <span className="text-sm">{getUsername(friend.email)}</span>
                           <span className="text-xs text-muted-foreground">{friend.email}</span>
                         </div>
                       ))}
                       {profile.friends.length > 5 && (
-                        <p className="text-xs text-muted-foreground pt-2">
-                          +{profile.friends.length - 5} more
-                        </p>
+                        <button
+                          onClick={() => setShowAllFriends(!showAllFriends)}
+                          className="text-xs text-primary hover:underline pt-2"
+                          data-testid="button-show-all-friends"
+                        >
+                          {showAllFriends ? 'Show less' : `+${profile.friends.length - 5} more`}
+                        </button>
                       )}
                     </div>
                   )}
@@ -241,16 +247,20 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      {profile.pendingRequests.slice(0, 3).map((request) => (
+                      {(showAllPendingRequests ? profile.pendingRequests : profile.pendingRequests.slice(0, 3)).map((request) => (
                         <div key={request.id} className="flex items-center justify-between py-1">
                           <span className="text-sm">{getUsername(request.email)}</span>
                           <span className="text-xs text-muted-foreground">{request.email}</span>
                         </div>
                       ))}
                       {profile.pendingRequests.length > 3 && (
-                        <p className="text-xs text-muted-foreground pt-2">
-                          +{profile.pendingRequests.length - 3} more
-                        </p>
+                        <button
+                          onClick={() => setShowAllPendingRequests(!showAllPendingRequests)}
+                          className="text-xs text-primary hover:underline pt-2"
+                          data-testid="button-show-all-pending-requests"
+                        >
+                          {showAllPendingRequests ? 'Show less' : `+${profile.pendingRequests.length - 3} more`}
+                        </button>
                       )}
                     </div>
                   </CardContent>
