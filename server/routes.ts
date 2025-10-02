@@ -119,6 +119,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile
+  app.post("/api/user/profile", requireAuth, async (req, res) => {
+    try {
+      const { username, bio } = req.body;
+      await storage.updateUserProfile(req.user!.id, username || null, bio || null);
+      res.json({ success: true, message: "Profile updated successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
   // Friends routes - protected by authentication
   app.post("/api/friends/add", requireAuth, async (req, res) => {
     try {

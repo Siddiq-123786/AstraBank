@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
@@ -20,8 +21,12 @@ import {
   UserPlus,
   UserCheck,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  Edit
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import EditProfileModal from "@/components/EditProfileModal";
 
 interface UserProfileModalProps {
   open: boolean;
@@ -32,6 +37,8 @@ interface UserProfileModalProps {
 type UserProfile = {
   id: string;
   email: string;
+  username: string | null;
+  bio: string | null;
   balance: number;
   isAdmin: boolean;
   createdAt: string;
@@ -72,6 +79,9 @@ function getUsername(email: string): string {
 }
 
 export default function UserProfileModal({ open, onOpenChange, userId }: UserProfileModalProps) {
+  const { user } = useAuth();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  
   const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['/api/users', userId, 'profile'],
     queryFn: async () => {
@@ -83,6 +93,8 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
     },
     enabled: !!userId && open,
   });
+  
+  const isOwnProfile = user?.id === userId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,11 +125,16 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                 </div>
                 <div className="flex-1">
                   <DialogTitle className="text-2xl" data-testid="profile-username">
-                    {getUsername(profile.email)}
+                    {profile.username || getUsername(profile.email)}
                   </DialogTitle>
                   <p className="text-sm text-muted-foreground" data-testid="profile-email">
                     {profile.email}
                   </p>
+                  {profile.bio && (
+                    <p className="text-sm mt-1" data-testid="profile-bio">
+                      {profile.bio}
+                    </p>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     {profile.isAdmin && (
                       <Badge variant="secondary" className="text-xs">
@@ -138,6 +155,17 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
                     )}
                   </div>
                 </div>
+                {isOwnProfile && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditDialogOpen(true)}
+                    data-testid="button-edit-profile"
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                )}
               </div>
             </DialogHeader>
 
@@ -318,6 +346,14 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
           </ScrollArea>
         )}
       </DialogContent>
+      {profile && (
+        <EditProfileModal
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          currentUsername={profile.username}
+          currentBio={profile.bio}
+        />
+      )}
     </Dialog>
   );
 }

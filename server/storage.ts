@@ -21,6 +21,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser & { balance?: number; isAdmin?: boolean }): Promise<User>;
   updateUserBalance(userId: string, newBalance: number): Promise<void>;
+  updateUserProfile(userId: string, username: string | null, bio: string | null): Promise<void>;
   adminAdjustBalance(userId: string, amount: number, description: string, adminId: string): Promise<{ success: boolean; error?: string }>;
   banUser(userId: string): Promise<void>;
   unbanUser(userId: string): Promise<void>;
@@ -87,6 +88,10 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserBalance(userId: string, newBalance: number): Promise<void> {
     await db.update(users).set({ balance: newBalance }).where(eq(users.id, userId));
+  }
+
+  async updateUserProfile(userId: string, username: string | null, bio: string | null): Promise<void> {
+    await db.update(users).set({ username, bio }).where(eq(users.id, userId));
   }
 
   async adminAdjustBalance(userId: string, amount: number, description: string, adminId: string): Promise<{ success: boolean; error?: string }> {
@@ -287,6 +292,8 @@ export class DatabaseStorage implements IStorage {
     return {
       id: user.id,
       email: user.email,
+      username: user.username,
+      bio: user.bio,
       balance: user.balance,
       isAdmin: user.isAdmin,
       createdAt: user.createdAt,
