@@ -105,6 +105,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get detailed user profile
+  app.get("/api/users/:id/profile", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const profile = await storage.getUserProfile(id, req.user!.id);
+      if (!profile) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json(profile);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
+
   // Friends routes - protected by authentication
   app.post("/api/friends/add", requireAuth, async (req, res) => {
     try {

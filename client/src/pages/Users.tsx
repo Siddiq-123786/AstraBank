@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { Users as UsersIcon, Star, UserPlus, Crown } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import UserProfileModal from "@/components/UserProfileModal";
 
 type UserProfile = {
   id: string;
@@ -37,6 +39,8 @@ function getUsername(email: string): string {
 export default function Users() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   
   const { data: users = [], isLoading, error } = useQuery<UserProfile[]>({
     queryKey: ['/api/users'],
@@ -72,6 +76,11 @@ export default function Users() {
   const getFriendshipStatus = (userId: string) => {
     const friendship = friends.find(f => f.id === userId);
     return friendship ? friendship.friendshipStatus : null;
+  };
+
+  const handleUserClick = (userId: string) => {
+    setSelectedUserId(userId);
+    setProfileModalOpen(true);
   };
 
   if (isLoading) {
@@ -133,7 +142,12 @@ export default function Users() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {otherUsers.map((user) => (
-            <Card key={user.id} className="hover-elevate" data-testid={`user-card-${user.id}`}>
+            <Card 
+              key={user.id} 
+              className="hover-elevate cursor-pointer" 
+              data-testid={`user-card-${user.id}`}
+              onClick={() => handleUserClick(user.id)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -187,7 +201,10 @@ export default function Users() {
                         variant="outline" 
                         className="flex-1"
                         data-testid={`button-add-friend-${user.id}`}
-                        onClick={() => addFriendMutation.mutate(user.email)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addFriendMutation.mutate(user.email);
+                        }}
                         disabled={addFriendMutation.isPending}
                       >
                         <UserPlus className="w-4 h-4 mr-1" />
@@ -211,6 +228,12 @@ export default function Users() {
           ))}
         </div>
       )}
+
+      <UserProfileModal
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
+        userId={selectedUserId}
+      />
     </div>
   );
 }

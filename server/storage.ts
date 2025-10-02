@@ -27,6 +27,7 @@ export interface IStorage {
   makeAdmin(userId: string): Promise<void>;
   removeAdmin(userId: string): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  getUserProfile(userId: string, currentUserId: string): Promise<any>;
   // Friends functionality
   addFriend(userId: string, friendEmail: string): Promise<void>;
   getFriends(userId: string): Promise<(Pick<User, 'id' | 'email' | 'balance' | 'isAdmin'> & { friendshipStatus: string; requestedByCurrent: boolean })[]>;
@@ -164,6 +165,139 @@ export class DatabaseStorage implements IStorage {
 
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
+  }
+
+  async getUserProfile(userId: string, currentUserId: string): Promise<any> {
+    // Get basic user info
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user || user.isBanned) {
+      return null;
+    }
+
+    // Get friendship status between current user and profile user
+    let friendshipStatus = null;
+    let requestedByCurrent = false;
+    if (userId !== currentUserId) {
+      const friendship = await db
+        .select()
+        .from(friendships)
+        .where(
+          or(
+            and(eq(friendships.userId, currentUserId), eq(friendships.friendId, userId)),
+            and(eq(friendships.userId, userId), eq(friendships.friendId, currentUserId))
+          )
+        );
+      
+      if (friendship.length > 0) {
+        friendshipStatus = friendship[0].status;
+        requestedByCurrent = friendship[0].userId === currentUserId;
+      }
+    }
+
+    // Get their friends (accepted only)
+    const acceptedFriends = await db
+      .select({
+        id: users.id,
+        email: users.email,
+      })
+      .from(friendships)
+      .innerJoin(
+        users,
+        or(
+          and(eq(friendships.userId, userId), eq(users.id, friendships.friendId)),
+          and(eq(friendships.friendId, userId), eq(users.id, friendships.userId))
+        )
+      )
+      .where(
+        and(
+          eq(friendships.status, 'accepted'),
+          or(eq(friendships.userId, userId), eq(friendships.friendId, userId))
+        )
+      );
+
+    // Get their pending friend requests (sent by them)
+    const pendingRequests = await db
+      .select({
+        id: users.id,
+        email: users.email,
+      })
+      .from(friendships)
+      .innerJoin(users, eq(users.id, friendships.friendId))
+      .where(
+        and(
+          eq(friendships.userId, userId),
+          eq(friendships.status, 'pending')
+        )
+      );
+
+    // Get recent transactions involving this user (limit 10)
+    const recentTransactions = await db
+      .select({
+        id: transactions.id,
+        amount: transactions.amount,
+        type: transactions.type,
+        description: transactions.description,
+        createdAt: transactions.createdAt,
+        fromUserId: transactions.fromUserId,
+        toUserId: transactions.toUserId,
+      })
+      .from(transactions)
+      .where(
+        or(
+          eq(transactions.fromUserId, userId),
+          eq(transactions.toUserId, userId)
+        )
+      )
+      .orderBy(desc(transactions.createdAt))
+      .limit(10);
+
+    // Get companies they've invested in
+    const investments = await db
+      .select({
+        companyId: companyEquityAllocations.companyId,
+        companyName: companies.name,
+        basisPoints: companyEquityAllocations.basisPoints,
+      })
+      .from(companyEquityAllocations)
+      .innerJoin(companies, eq(companies.id, companyEquityAllocations.companyId))
+      .where(
+        and(
+          eq(companyEquityAllocations.userId, userId),
+          eq(companies.isDeleted, false)
+        )
+      );
+
+    // Get companies they've created
+    const createdCompanies = await db
+      .select({
+        id: companies.id,
+        name: companies.name,
+        category: companies.category,
+        currentFunding: companies.currentFunding,
+        fundingGoal: companies.fundingGoal,
+      })
+      .from(companies)
+      .where(
+        and(
+          eq(companies.createdById, userId),
+          eq(companies.isDeleted, false)
+        )
+      );
+
+    return {
+      id: user.id,
+      email: user.email,
+      balance: user.balance,
+      isAdmin: user.isAdmin,
+      createdAt: user.createdAt,
+      friendshipStatus,
+      requestedByCurrent,
+      friends: acceptedFriends,
+      pendingRequests,
+      recentTransactions,
+      investments,
+      createdCompanies,
+    };
   }
 
   // Friends functionality
