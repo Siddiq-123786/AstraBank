@@ -43,6 +43,11 @@ export default function Investments() {
     enabled: !!user?.id,
   });
 
+  const { data: transactions = [] } = useQuery<any[]>({
+    queryKey: ['/api/transactions'],
+    enabled: !!user?.id,
+  });
+
   // Show error toasts if queries fail
   useEffect(() => {
     if (equityError) {
@@ -69,6 +74,32 @@ export default function Investments() {
   }, 0);
 
   const totalEarnings = payouts.reduce((sum, payout) => sum + payout.amount, 0);
+
+  // Calculate total invested per company
+  const investmentsByCompany = transactions
+    .filter((tx: any) => tx.type === 'invest')
+    .reduce((acc: Record<string, number>, tx: any) => {
+      if (tx.companyId) {
+        acc[tx.companyId] = (acc[tx.companyId] || 0) + tx.amount;
+      }
+      return acc;
+    }, {});
+
+  const totalInvested = Object.values(investmentsByCompany).reduce((sum: number, amount: any) => sum + amount, 0);
+
+  // Calculate earnings per company
+  const earningsByCompany = payouts.reduce((acc: Record<string, number>, payout) => {
+    acc[payout.companyId] = (acc[payout.companyId] || 0) + payout.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Calculate ROI for a specific company
+  const getCompanyROI = (companyId: string) => {
+    const invested = investmentsByCompany[companyId] || 0;
+    const earned = earningsByCompany[companyId] || 0;
+    if (invested === 0) return 0;
+    return ((earned / invested) * 100);
+  };
 
   const formatPercentage = (bps: number) => {
     return `${(bps / 100).toFixed(2)}%`;
@@ -112,7 +143,7 @@ export default function Investments() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -129,8 +160,8 @@ export default function Investments() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Equity Value</p>
-                <p className="text-2xl font-bold" data-testid="stat-equity-value">{totalEquityValue.toFixed(2)}%</p>
+                <p className="text-sm text-muted-foreground mb-1">Total Invested</p>
+                <p className="text-2xl font-bold" data-testid="stat-total-invested">⭐ {totalInvested.toLocaleString()}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-muted-foreground" />
             </div>
@@ -145,6 +176,20 @@ export default function Investments() {
                 <p className="text-2xl font-bold" data-testid="stat-total-earnings">⭐ {totalEarnings.toLocaleString()}</p>
               </div>
               <DollarSign className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Overall ROI</p>
+                <p className={`text-2xl font-bold ${totalInvested > 0 && totalEarnings > totalInvested ? 'text-green-500' : ''}`} data-testid="stat-overall-roi">
+                  {totalInvested > 0 ? ((totalEarnings / totalInvested) * 100).toFixed(1) : '0'}%
+                </p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-muted-foreground" />
             </div>
           </CardContent>
         </Card>
@@ -169,35 +214,64 @@ export default function Investments() {
             </div>
           ) : (
             <div className="space-y-3">
-              {equity.map((holding) => (
-                <div
-                  key={holding.id}
-                  className="flex items-center justify-between p-4 rounded-lg border"
-                  data-testid={`equity-${holding.companyId}`}
-                >
-                  <div className="flex-1">
-                    <h3 className="font-semibold mb-1" data-testid={`equity-company-name-${holding.companyId}`}>
-                      {holding.companyName}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>Invested: {new Date(holding.createdAt).toLocaleDateString()}</span>
-                      {!holding.canReceivePayouts && (
-                        <Badge variant="secondary" data-testid={`equity-status-${holding.companyId}`}>
-                          Non-Payout
-                        </Badge>
-                      )}
+              {equity.map((holding) => {
+                const invested = investmentsByCompany[holding.companyId] || 0;
+                const earned = earningsByCompany[holding.companyId] || 0;
+                const roi = getCompanyROI(holding.companyId);
+                
+                return (
+                  <div
+                    key={holding.id}
+                    className="p-4 rounded-lg border space-y-3"
+                    data-testid={`equity-${holding.companyId}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold mb-1" data-testid={`equity-company-name-${holding.companyId}`}>
+                          {holding.companyName}
+                        </h3>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>Invested: {new Date(holding.createdAt).toLocaleDateString()}</span>
+                          {!holding.canReceivePayouts && (
+                            <Badge variant="secondary" data-testid={`equity-status-${holding.companyId}`}>
+                              Non-Payout
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-primary" data-testid={`equity-percentage-${holding.companyId}`}>
+                          {formatPercentage(holding.basisPoints)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {holding.basisPoints.toLocaleString()} bps
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4 pt-2 border-t">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Invested</p>
+                        <p className="font-semibold" data-testid={`equity-invested-${holding.companyId}`}>
+                          ⭐ {invested.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Earned</p>
+                        <p className="font-semibold text-green-600" data-testid={`equity-earned-${holding.companyId}`}>
+                          ⭐ {earned.toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">ROI</p>
+                        <p className={`font-semibold ${roi > 0 ? 'text-green-600' : ''}`} data-testid={`equity-roi-${holding.companyId}`}>
+                          {roi.toFixed(1)}%
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-primary" data-testid={`equity-percentage-${holding.companyId}`}>
-                      {formatPercentage(holding.basisPoints)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {holding.basisPoints.toLocaleString()} bps
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
