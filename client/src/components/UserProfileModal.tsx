@@ -103,9 +103,7 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
   
   const removeFriendMutation = useMutation({
     mutationFn: async (friendId: string) => {
-      return await apiRequest(`/api/friends/${friendId}`, {
-        method: 'DELETE',
-      });
+      return await apiRequest('DELETE', `/api/friends/${friendId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users', userId, 'profile'] });
