@@ -41,6 +41,7 @@ export const companies = pgTable("companies", {
   investorPoolBps: integer("investor_pool_bps").notNull().default(5000), // Basis points allocated for investors (default 50%)
   allocatedInvestorBps: integer("allocated_investor_bps").notNull().default(0), // How much of investor pool has been allocated
   treasuryBalance: integer("treasury_balance").notNull().default(0), // Company's Astra balance
+  totalEarningsDistributed: integer("total_earnings_distributed").notNull().default(0), // Total earnings paid out to investors
 });
 
 // Company equity allocations - tracks ownership percentages

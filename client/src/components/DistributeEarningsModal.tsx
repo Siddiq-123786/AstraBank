@@ -32,14 +32,26 @@ export default function DistributeEarningsModal({
       });
       return res.json();
     },
-    onSuccess: (data: { adminFee: number; totalPaidOut: number; payoutCount: number }) => {
+    onSuccess: (data: { adminShare?: number; investorPayouts?: number }) => {
+      const adminShare = data.adminShare || 0;
+      const investorPayouts = data.investorPayouts || 0;
+      const total = adminShare + investorPayouts;
+      
       toast({
-        title: "Earnings distributed!",
-        description: `Distributed ${data.totalPaidOut.toLocaleString()} Astras to ${data.payoutCount} equity holder${data.payoutCount > 1 ? 's' : ''}. Admin fee: ${data.adminFee.toLocaleString()} Astras.`,
+        title: "✅ Earnings distributed successfully!",
+        description: (
+          <div className="space-y-1">
+            <p className="font-semibold">Total: {total.toLocaleString()} Astras</p>
+            <p>• Admins received: {adminShare.toLocaleString()} Astras (4.5%)</p>
+            <p>• Investors received: {investorPayouts.toLocaleString()} Astras</p>
+            <p className="text-xs mt-2 opacity-80">All equity holders have been paid!</p>
+          </div>
+        ),
       });
       
       queryClient.invalidateQueries({ queryKey: ['/api/companies'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/investments'] });
       
       setAmount('');
       onOpenChange(false);
