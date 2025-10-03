@@ -50,6 +50,7 @@ export interface IStorage {
   getUserEquity(userId: string): Promise<(CompanyEquityAllocation & { companyName: string })[]>;
   getCompanyPayouts(companyId: string): Promise<(CompanyPayout & { userEmail: string | null; earningsDate: Date })[]>;
   getUserPayouts(userId: string): Promise<(CompanyPayout & { companyName: string; earningsDate: Date })[]>;
+  getCompanyInvestors(companyId: string): Promise<Array<{ userId: string; userEmail: string; username: string | null; totalInvested: number; basisPoints: number }>>;
   sessionStore: Store;
 }
 
@@ -1100,6 +1101,57 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(companyPayouts.createdAt));
     
     return payouts;
+  }
+
+  async getCompanyInvestors(companyId: string): Promise<Array<{ userId: string; userEmail: string; username: string | null; totalInvested: number; basisPoints: number }>> {
+    const investors = await db
+      .select({
+        userId: companyInvestments.userId,
+        amount: companyInvestments.amount,
+      })
+      .from(companyInvestments)
+      .where(eq(companyInvestments.companyId, companyId));
+    
+    // Group investments by user
+    const investmentsByUser = new Map<string, number>();
+    for (const investment of investors) {
+      const current = investmentsByUser.get(investment.userId) || 0;
+      investmentsByUser.set(investment.userId, current + investment.amount);
+    }
+    
+    // Get user details and equity for each investor
+    const result = await Promise.all(
+      Array.from(investmentsByUser.entries()).map(async ([userId, totalInvested]) => {
+        const [user] = await db
+          .select({
+            email: users.email,
+            username: users.username,
+          })
+          .from(users)
+          .where(eq(users.id, userId));
+        
+        const [equity] = await db
+          .select({
+            basisPoints: companyEquityAllocations.basisPoints,
+          })
+          .from(companyEquityAllocations)
+          .where(and(
+            eq(companyEquityAllocations.companyId, companyId),
+            eq(companyEquityAllocations.userId, userId)
+          ));
+        
+        return {
+          userId,
+          userEmail: user?.email || '',
+          username: user?.username || null,
+          totalInvested,
+          basisPoints: equity?.basisPoints || 0,
+        };
+      })
+    );
+    
+    // Sort by total invested (descending)
+    return result.sort((a, b) => b.totalInvested - a.totalInvested);
   }
 
 }
