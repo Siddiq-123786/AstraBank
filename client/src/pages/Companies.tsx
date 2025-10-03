@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import DistributeEarningsModal from "@/components/DistributeEarningsModal";
 import InvestModal from "@/components/InvestModal";
+import CompanyDetailModal from "@/components/CompanyDetailModal";
 
 type Company = {
   id: string;
@@ -43,6 +44,8 @@ export default function Companies() {
   const [companyForEarnings, setCompanyForEarnings] = useState<Company | null>(null);
   const [investDialogOpen, setInvestDialogOpen] = useState(false);
   const [companyToInvest, setCompanyToInvest] = useState<Company | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [companyForDetail, setCompanyForDetail] = useState<Company | null>(null);
 
   const { data: companies = [], isLoading, error } = useQuery<Company[]>({
     queryKey: ['/api/companies'],
@@ -97,6 +100,11 @@ export default function Companies() {
   const handleInvestClick = (company: Company) => {
     setCompanyToInvest(company);
     setInvestDialogOpen(true);
+  };
+
+  const handleViewDetails = (company: Company) => {
+    setCompanyForDetail(company);
+    setDetailModalOpen(true);
   };
 
   if (isLoading) {
@@ -157,7 +165,12 @@ export default function Companies() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {companies.map((company) => (
-            <Card key={company.id} className="hover-elevate" data-testid={`company-card-${company.id}`}>
+            <Card 
+              key={company.id} 
+              className="hover-elevate cursor-pointer" 
+              data-testid={`company-card-${company.id}`}
+              onClick={() => handleViewDetails(company)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
@@ -174,7 +187,10 @@ export default function Companies() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => handleDeleteClick(company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick(company);
+                      }}
                       data-testid={`button-delete-${company.id}`}
                       className="flex-shrink-0"
                     >
@@ -242,7 +258,10 @@ export default function Companies() {
                     <Button 
                       size="sm" 
                       className="w-full"
-                      onClick={() => handleInvestClick(company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInvestClick(company);
+                      }}
                       data-testid={`button-invest-${company.id}`}
                     >
                       <TrendingUp className="w-4 h-4 mr-1" />
@@ -260,7 +279,10 @@ export default function Companies() {
                       size="sm"
                       variant="outline"
                       className="w-full"
-                      onClick={() => handleEarningsClick(company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEarningsClick(company);
+                      }}
                       data-testid={`button-earnings-${company.id}`}
                     >
                       <DollarSign className="w-4 h-4 mr-1" />
@@ -310,6 +332,12 @@ export default function Companies() {
         open={investDialogOpen}
         onOpenChange={setInvestDialogOpen}
         company={companyToInvest}
+      />
+
+      <CompanyDetailModal
+        open={detailModalOpen}
+        onOpenChange={setDetailModalOpen}
+        company={companyForDetail as any}
       />
     </div>
   );
