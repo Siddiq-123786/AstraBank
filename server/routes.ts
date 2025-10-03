@@ -422,6 +422,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get company investors with their investment amounts
+  app.get("/api/companies/:id/investors", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const investors = await storage.getCompanyInvestors(id);
+      res.json(investors);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch company investors" });
+    }
+  });
+
   app.delete("/api/companies/:id", requireAuth, async (req, res) => {
     try {
       // Check if user is admin
