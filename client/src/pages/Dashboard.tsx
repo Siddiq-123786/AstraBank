@@ -11,6 +11,7 @@ import AddFriendModal from "@/components/AddFriendModal";
 import CreateCompanyModal from "@/components/CreateCompanyModal";
 import InvestmentModal from "@/components/InvestmentModal";
 import SendMoneyModal from "@/components/SendMoneyModal";
+import CompanyDetailModal from "@/components/CompanyDetailModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ApiTransaction, Company } from "@shared/schema";
@@ -21,8 +22,10 @@ export default function Dashboard() {
   const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
   const [createCompanyModalOpen, setCreateCompanyModalOpen] = useState(false);
   const [investmentModalOpen, setInvestmentModalOpen] = useState(false);
+  const [companyDetailModalOpen, setCompanyDetailModalOpen] = useState(false);
   const [selectedFriendId, setSelectedFriendId] = useState<string>("");
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [selectedCompanyForDetail, setSelectedCompanyForDetail] = useState<Company | null>(null);
 
   // Fetch friends data
   const { data: friends = [], isLoading: friendsLoading } = useQuery<{ id: string; email: string; balance: number; friendshipStatus: string; requestedByCurrent: boolean }[]>({
@@ -53,6 +56,14 @@ export default function Dashboard() {
     if (company) {
       setSelectedCompany(company);
       setInvestmentModalOpen(true);
+    }
+  };
+
+  const handleViewCompanyDetails = (companyId: string) => {
+    const company = companies.find(c => c.id === companyId);
+    if (company) {
+      setSelectedCompanyForDetail(company);
+      setCompanyDetailModalOpen(true);
     }
   };
 
@@ -129,6 +140,7 @@ export default function Dashboard() {
                   key={company.id}
                   company={company}
                   onInvest={handleInvest}
+                  onViewDetails={handleViewCompanyDetails}
                 />
               ))
             )}
@@ -156,6 +168,12 @@ export default function Dashboard() {
         open={investmentModalOpen}
         onOpenChange={setInvestmentModalOpen}
         company={selectedCompany}
+      />
+
+      <CompanyDetailModal
+        open={companyDetailModalOpen}
+        onOpenChange={setCompanyDetailModalOpen}
+        company={selectedCompanyForDetail}
       />
     </div>
   );

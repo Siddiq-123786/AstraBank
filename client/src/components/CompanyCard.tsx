@@ -9,15 +9,20 @@ import { Company } from "@shared/schema";
 interface CompanyCardProps {
   company: Company;
   onInvest: (companyId: string) => void;
+  onViewDetails?: (companyId: string) => void;
 }
 
-export default function CompanyCard({ company, onInvest }: CompanyCardProps) {
+export default function CompanyCard({ company, onInvest, onViewDetails }: CompanyCardProps) {
   const fundingProgress = (company.currentFunding / company.fundingGoal) * 100;
   const initials = company.name.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase();
   const founded = new Date(company.foundedAt).getFullYear();
 
   return (
-    <Card className="w-full hover-elevate">
+    <Card 
+      className="w-full hover-elevate cursor-pointer" 
+      onClick={() => onViewDetails?.(company.id)}
+      data-testid={`card-company-${company.id}`}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -64,7 +69,10 @@ export default function CompanyCard({ company, onInvest }: CompanyCardProps) {
             <span>Goal: {company.fundingGoal.toLocaleString()} ⭐</span>
           </div>
           <Button
-            onClick={() => onInvest(company.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onInvest(company.id);
+            }}
             data-testid={`button-invest-${company.id}`}
           >
             Invest
