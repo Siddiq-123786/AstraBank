@@ -449,6 +449,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecommendedUsers(userId: string): Promise<Pick<User, 'id' | 'email' | 'isAdmin'>[]> {
+    // Get current user's balance for similarity comparison
+    const [currentUser] = await db
+      .select({ balance: users.balance })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!currentUser) {
+      return [];
+    }
+
     // Get all users except:
     // 1. The current user
     // 2. Users who are already friends (any status)
@@ -471,11 +482,13 @@ export class DatabaseStorage implements IStorage {
 
     const friendIds = existingFriendIds.map(f => f.id);
     
-    const recommendations = await db
+    // Get all eligible users with their balance for smart ranking
+    const eligibleUsers = await db
       .select({
         id: users.id,
         email: users.email,
-        isAdmin: users.isAdmin
+        isAdmin: users.isAdmin,
+        balance: users.balance
       })
       .from(users)
       .where(
@@ -484,9 +497,47 @@ export class DatabaseStorage implements IStorage {
           friendIds.length > 0 ? sql`${users.id} NOT IN (${sql.join(friendIds.map(id => sql`${id}`), sql`, `)})` : sql`true`,
           eq(users.isBanned, false)
         )
-      )
-      .orderBy(users.email)
-      .limit(20);
+      );
+
+    // Smart ranking algorithm:
+    // 1. Calculate similarity score based on balance proximity
+    // 2. Give admins a small bonus for community engagement
+    // 3. Use deterministic tie-breaker for consistency
+    const rankedUsers = eligibleUsers.map(user => {
+      // Handle potential null/undefined balance defensively
+      const userBalance = user.balance ?? 0;
+      const currentBalance = currentUser.balance ?? 0;
+      const balanceDiff = Math.abs(userBalance - currentBalance);
+      
+      // Similarity score: Higher score for similar balance
+      // Use exponential decay so closer balances get much higher scores
+      const balanceSimilarityScore = 10000 / (1 + balanceDiff / 1000);
+      
+      // Admin bonus: Small boost to ensure admins appear in recommendations
+      const adminBonus = user.isAdmin ? 500 : 0;
+      
+      const totalScore = balanceSimilarityScore + adminBonus;
+      
+      return {
+        ...user,
+        score: totalScore
+      };
+    });
+
+    // Sort by score (highest first), then by email for deterministic tie-breaking
+    rankedUsers.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      // Deterministic tie-breaker: sort by email alphabetically
+      return a.email.localeCompare(b.email);
+    });
+    
+    const recommendations = rankedUsers.slice(0, 10).map(user => ({
+      id: user.id,
+      email: user.email,
+      isAdmin: user.isAdmin
+    }));
 
     return recommendations;
   }
