@@ -180,33 +180,15 @@ export default function AdminPanel() {
                       
                       <div className="space-y-2">
                         <Label htmlFor="adjustment-amount">Adjustment Amount</Label>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setAdjustmentAmount(adjustmentAmount ? (parseInt(adjustmentAmount) > 0 ? adjustmentAmount : `-${Math.abs(parseInt(adjustmentAmount))}`) : '-100')}
-                            data-testid="button-negative-adjustment"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <Input
-                            id="adjustment-amount"
-                            type="number"
-                            value={adjustmentAmount}
-                            onChange={(e) => setAdjustmentAmount(e.target.value)}
-                            placeholder="Enter amount (+ or -)"
-                            className="font-mono flex-1"
-                            data-testid="input-adjustment-amount"
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setAdjustmentAmount(adjustmentAmount ? (parseInt(adjustmentAmount) < 0 ? adjustmentAmount : `+${Math.abs(parseInt(adjustmentAmount))}`) : '+100')}
-                            data-testid="button-positive-adjustment"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        <Input
+                          id="adjustment-amount"
+                          type="number"
+                          value={adjustmentAmount}
+                          onChange={(e) => setAdjustmentAmount(e.target.value)}
+                          placeholder="Enter amount (+ or -)"
+                          className="font-mono"
+                          data-testid="input-adjustment-amount"
+                        />
                         <p className="text-sm text-muted-foreground">
                           Use positive numbers to add Astras, negative to subtract
                         </p>
