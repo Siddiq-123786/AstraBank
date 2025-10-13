@@ -89,13 +89,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
+      const isAdmin = req.user!.isAdmin;
+      
       // Filter out banned users from public view
       const publicUsers = users
         .filter(user => !user.isBanned)
         .map(user => ({
           id: user.id,
           email: user.email,
-          balance: user.balance,
+          balance: isAdmin ? user.balance : undefined, // Only show balance to admins
           isAdmin: user.isAdmin,
           username: user.username,
           bio: user.bio,

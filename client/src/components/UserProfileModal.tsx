@@ -42,7 +42,7 @@ type UserProfile = {
   email: string;
   username: string | null;
   bio: string | null;
-  balance: number;
+  balance?: number;
   isAdmin: boolean;
   createdAt: string;
   friendshipStatus: string | null;
@@ -210,19 +210,21 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
 
             <div className="space-y-6 pt-4">
               {/* Balance & Join Date & Incoming Requests */}
-              <div className="grid grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Star className="w-4 h-4 text-yellow-500" />
-                      <span className="text-sm text-muted-foreground">Balance</span>
-                    </div>
-                    <p className="text-2xl font-bold" data-testid="profile-balance">
-                      {profile.balance.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Astras</p>
-                  </CardContent>
-                </Card>
+              <div className={`grid gap-4 ${profile.balance !== undefined ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {profile.balance !== undefined && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Star className="w-4 h-4 text-yellow-500" />
+                        <span className="text-sm text-muted-foreground">Balance</span>
+                      </div>
+                      <p className="text-2xl font-bold" data-testid="profile-balance">
+                        {profile.balance.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Astras</p>
+                    </CardContent>
+                  </Card>
+                )}
                 <Card>
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-2 mb-1">
