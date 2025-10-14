@@ -117,6 +117,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!profile) {
         return res.status(404).json({ error: "User not found" });
       }
+      
+      // Only show balance to admins or the user viewing their own profile
+      const isAdmin = req.user!.isAdmin;
+      const isOwnProfile = req.user!.id === id;
+      if (!isAdmin && !isOwnProfile) {
+        delete profile.balance;
+      }
+      
       res.json(profile);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch user profile" });
