@@ -44,6 +44,13 @@ export default function History() {
   };
 
   const getTransactionTitle = (transaction: ApiTransaction, transactionType: 'sent' | 'received') => {
+    // For admins viewing all transactions, show from/to format
+    if (user?.isAdmin && 'fromUserEmail' in transaction && 'toUserEmail' in transaction) {
+      const fromUsername = (transaction as any).fromUserEmail.split('@')[0].replace('.', ' ');
+      const toUsername = (transaction as any).toUserEmail.split('@')[0].replace('.', ' ');
+      return `${fromUsername} → ${toUsername}`;
+    }
+    
     const username = transaction.counterpartEmail.split('@')[0].replace('.', ' ');
     return transactionType === 'sent' 
       ? `Sent to ${username}` 
@@ -82,7 +89,10 @@ export default function History() {
         <div>
           <h1 className="text-3xl font-bold">Transaction History</h1>
           <p className="text-muted-foreground mt-1">
-            View all your Astra transactions and transfers
+            {user?.isAdmin 
+              ? "View all Astra transactions across the platform"
+              : "View all your Astra transactions and transfers"
+            }
           </p>
         </div>
       </div>
@@ -214,6 +224,7 @@ export default function History() {
             <div className="space-y-2">
               {filteredTransactions.map((transaction) => {
                 const transactionType = getTransactionType(transaction);
+                const isAdminViewingAll = user?.isAdmin && 'fromUserEmail' in transaction;
                 const userInitials = getUserInitials(transaction.counterpartEmail);
                 const formattedDate = format(new Date(transaction.createdAt), 'MMM d, yyyy • h:mm a');
                 
@@ -226,15 +237,19 @@ export default function History() {
                     <div className="flex items-center gap-4">
                       <div className={cn(
                         "p-3 rounded-full",
-                        transactionType === 'received' 
-                          ? "bg-green-100 dark:bg-green-900/20"
-                          : "bg-red-100 dark:bg-red-900/20"
+                        isAdminViewingAll
+                          ? "bg-blue-100 dark:bg-blue-900/20"
+                          : transactionType === 'received' 
+                            ? "bg-green-100 dark:bg-green-900/20"
+                            : "bg-red-100 dark:bg-red-900/20"
                       )}>
                         <Send className={cn(
                           "w-5 h-5",
-                          transactionType === 'received' 
-                            ? "text-green-600 rotate-180"
-                            : "text-red-600"
+                          isAdminViewingAll
+                            ? "text-blue-600"
+                            : transactionType === 'received' 
+                              ? "text-green-600 rotate-180"
+                              : "text-red-600"
                         )} />
                       </div>
                       
@@ -250,15 +265,20 @@ export default function History() {
                     </div>
                     
                     <div className="text-right">
-                      <p className={cn("text-xl font-mono font-bold", getAmountColor(transactionType))}>
-                        {getAmountPrefix(transactionType)}{transaction.amount.toLocaleString()} ⭐
+                      <p className={cn(
+                        "text-xl font-mono font-bold",
+                        isAdminViewingAll ? "" : getAmountColor(transactionType)
+                      )}>
+                        {isAdminViewingAll ? '' : getAmountPrefix(transactionType)}{transaction.amount.toLocaleString()} ⭐
                       </p>
-                      <Badge 
-                        variant={transactionType === 'received' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {transactionType}
-                      </Badge>
+                      {!isAdminViewingAll && (
+                        <Badge 
+                          variant={transactionType === 'received' ? 'default' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {transactionType}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 );

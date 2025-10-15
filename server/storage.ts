@@ -633,6 +633,43 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getAllTransactions(limit: number = 100): Promise<(Transaction & { transactionType: 'sent' | 'received'; counterpartEmail: string; counterpartIsAdmin: boolean; fromUserEmail: string; toUserEmail: string })[]> {
+    // Get all transactions for admins
+    const baseTransactions = await db
+      .select()
+      .from(transactions)
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit);
+
+    // Enhance with user emails
+    const result = await Promise.all(
+      baseTransactions.map(async (transaction) => {
+        const fromUser = await db
+          .select({ email: users.email, isAdmin: users.isAdmin })
+          .from(users)
+          .where(eq(users.id, transaction.fromUserId!))
+          .limit(1);
+
+        const toUser = await db
+          .select({ email: users.email, isAdmin: users.isAdmin })
+          .from(users)
+          .where(eq(users.id, transaction.toUserId!))
+          .limit(1);
+
+        return {
+          ...transaction,
+          transactionType: 'sent' as const, // Default, will be determined by frontend based on current user
+          counterpartEmail: toUser[0]?.email || 'Unknown',
+          counterpartIsAdmin: toUser[0]?.isAdmin || false,
+          fromUserEmail: fromUser[0]?.email || 'Unknown',
+          toUserEmail: toUser[0]?.email || 'Unknown'
+        };
+      })
+    );
+
+    return result;
+  }
+
   // Company methods
   async createCompany(company: { name: string; description: string; category: string; fundingGoal: number; teamEmails: string; createdById: string; investorPoolBps: number; equityAllocations: Array<{ email: string; basisPoints: number }> }): Promise<Company> {
     return await db.transaction(async (tx) => {

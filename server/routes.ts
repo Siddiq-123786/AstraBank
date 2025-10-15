@@ -265,8 +265,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/transactions", requireAuth, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
-      const transactions = await storage.getTransactions(req.user!.id, limit);
-      res.json(transactions);
+      
+      // Admins can see all transactions
+      if (req.user!.isAdmin) {
+        const transactions = await storage.getAllTransactions(limit);
+        res.json(transactions);
+      } else {
+        const transactions = await storage.getTransactions(req.user!.id, limit);
+        res.json(transactions);
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch transactions" });
     }
