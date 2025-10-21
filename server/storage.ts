@@ -170,6 +170,65 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async bulkUpdateBalances(adminId: string, emails: string[], amount: number, description: string): Promise<{ success: number; failed: number; errors: string[] }> {
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
+
+    for (const email of emails) {
+      try {
+        const result = await db.transaction(async (tx) => {
+          // Fetch and lock user row to prevent race conditions
+          const [user] = await tx
+            .select()
+            .from(users)
+            .where(eq(users.email, email.trim()))
+            .for('update');
+          
+          if (!user) {
+            return { success: false, error: `User not found: ${email}` };
+          }
+
+          const newBalance = user.balance + amount;
+          if (newBalance < 0) {
+            return { success: false, error: `${email}: Would result in negative balance` };
+          }
+
+          // Update balance using SQL arithmetic to prevent race conditions
+          await tx
+            .update(users)
+            .set({ balance: sql`${users.balance} + ${amount}` })
+            .where(eq(users.id, user.id));
+
+          // Create transaction record with proper admin attribution
+          // For additions (amount > 0): admin sends to user
+          // For subtractions (amount < 0): user sends to admin
+          await tx.insert(transactions).values({
+            fromUserId: amount > 0 ? adminId : user.id,
+            toUserId: amount > 0 ? user.id : adminId,
+            amount: Math.abs(amount),
+            type: 'admin_adjust',
+            description: `Bulk admin adjustment: ${description}`
+          });
+
+          return { success: true };
+        });
+
+        if (result.success) {
+          successCount++;
+        } else {
+          errors.push(result.error!);
+          failedCount++;
+        }
+      } catch (error) {
+        errors.push(`${email}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        failedCount++;
+      }
+    }
+
+    return { success: successCount, failed: failedCount, errors };
+  }
+
   async getAllUsers(): Promise<User[]> {
     return await db.select().from(users);
   }

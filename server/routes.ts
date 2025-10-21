@@ -85,6 +85,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/bulk-balance", requireAdmin, async (req, res) => {
+    try {
+      const { emails, amount, description } = req.body;
+      
+      if (!emails || !Array.isArray(emails) || emails.length === 0) {
+        return res.status(400).json({ error: "Emails array is required" });
+      }
+      
+      if (!amount || isNaN(amount)) {
+        return res.status(400).json({ error: "Valid amount is required" });
+      }
+      
+      if (!description || !description.trim()) {
+        return res.status(400).json({ error: "Description is required" });
+      }
+      
+      const results = await storage.bulkUpdateBalances(req.user!.id, emails, parseInt(amount), description.trim());
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to bulk update balances" });
+    }
+  });
+
   // User directory - accessible to all authenticated users
   app.get("/api/users", requireAuth, async (req, res) => {
     try {
