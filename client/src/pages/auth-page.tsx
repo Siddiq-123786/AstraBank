@@ -161,7 +161,7 @@ export default function AuthPage() {
           <div className="space-y-2 text-primary-foreground/80">
             <div className="flex items-center gap-2 justify-center">
               <Wallet className="w-5 h-5" />
-              <p>Start with 1,000 Astras</p>
+              <p>Start with 2,000 Astras</p>
             </div>
             <div className="flex items-center gap-2 justify-center">
               <Users className="w-5 h-5" />
