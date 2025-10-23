@@ -210,8 +210,8 @@ export default function UserProfileModal({ open, onOpenChange, userId }: UserPro
 
             <div className="space-y-6 pt-4">
               {/* Balance & Join Date & Incoming Requests */}
-              <div className={`grid gap-4 ${profile.balance !== undefined ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                {profile.balance !== undefined && (
+              <div className={`grid gap-4 ${(isOwnProfile || user?.isAdmin) && profile.balance !== undefined ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                {(isOwnProfile || user?.isAdmin) && profile.balance !== undefined && (
                   <Card>
                     <CardContent className="pt-6">
                       <div className="flex items-center gap-2 mb-1">

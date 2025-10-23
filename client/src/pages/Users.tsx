@@ -183,7 +183,7 @@ export default function Users() {
               </CardHeader>
               <CardContent className="pt-0">
                 <div className="space-y-4">
-                  {user.balance !== undefined && (
+                  {currentUser?.isAdmin && user.balance !== undefined && (
                     <div className="flex items-center gap-2">
                       <Star className="w-4 h-4 text-yellow-500" />
                       <span className="font-medium" data-testid={`user-balance-${user.id}`}>
